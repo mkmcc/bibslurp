@@ -7,6 +7,7 @@
 ;; 2. make space and S-space page down and up in bibslurp-mode
 ;; 3. make sure the autoloading is right...
 ;; 4. submit to MELPA!
+;; 5. long-term goal: replace lynx calls with internal emacs functions
 
 ;;; make a rudimentary web browser
 
