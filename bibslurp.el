@@ -104,7 +104,7 @@ corresponding bibtex entry.  Return nil if not found."
     (call-process "lynx" nil t nil "-dump" abs-url)
     (goto-char (point-min))
     ; look for, e.g. "[25]Bibtex entry for this abstract"
-    (when (re-search-forward "\\[\\([0-9]+\\)\\]Bibtex" nil t)
+    (when (re-search-forward (concat bibslurp-link-regexp "Bibtex") nil t)
       ; look for, e.g. " 25. http://..."
       (let ((bib-link-regexp
              (concat "^\\s-*" (match-string-no-properties 1)
