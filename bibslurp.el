@@ -9,17 +9,19 @@
 ;; 4. submit to MELPA!
 ;; 5. long-term goal: replace lynx calls with internal emacs functions
 
-;;; make a rudimentary web browser
+;;; start by making a rudimentary web browser
+;;; -- use lynx for now, but eventually should replace this with
+;;;    internal emacs functions
 
 (defvar bibslurp-link-regexp "\\[\\([0-9]+\\)\\]"
   "Regular expression that tells bibslurp what links look like.
-The first parenthesized subexpression is the unique
+The parenthesized subexpression is the unique
 string (representing a base 10 number) denoting a link")
 
 (defvar bibslurp-font-lock-keywords
   `((,bibslurp-link-regexp . font-lock-keyword-face))
   "Font lock for `bibslurp-mode'.
-Currently, only numbered links are fontified.")
+Only numbered links are fontified.")
 
 (defvar bibslurp-mode-map
   (let ((map (make-keymap)))
@@ -29,13 +31,20 @@ Currently, only numbered links are fontified.")
   "Keymap for bibslurp mode.")
 
 (define-derived-mode bibslurp-mode fundamental-mode "bibslurp"
-  "docstring"
+  "Major mode for perusing ADS search results and slurping bibtex
+entries to the kill-ring.  This is pretty specific, so you should
+only enter the mode via `bibslurp-query-ads'.  Requires the lynx
+browser to the installed."
   (kill-all-local-variables)
   (use-local-map bibslurp-mode-map)
   (set (make-local-variable 'font-lock-defaults)
        '(bibslurp-font-lock-keywords)))
 
 (defun bibslurp/follow-link (number)
+  "take a link number and return the corresponding url as a
+string.  argument may be either an integer or a string.  returns
+nil if the link number is invalid, throws an error if the current
+buffer doesn't conform to the expected \"lynx --dump\" format."
   (interactive "P")
   (let* ((link-number
           (if (stringp number)
@@ -67,8 +76,12 @@ Currently, only numbered links are fontified.")
 
 ;;;###autoload
 (defun bibslurp-query-ads (&optional search-string)
-  "Interactive function which asks for a search string and
-retrieves the results."
+  "Interactive function which asks for a search string and sends
+the query to NASA ADS.  Displays results in a new buffer called
+\"ADS Search Results\" and enters `bibslurp-mode'.  You can
+retrieve a bibtex entry by typing the number in front of the
+abstract link and hitting enter.  You can exit the mode at any
+time by hitting 'q'."
   (interactive (list (read-string "Search string: ")))
   (let ((search-url (bibslurp/build-ads-url search-string))
         (buf (get-buffer-create "ADS Search Results")))
@@ -133,7 +146,7 @@ for the number in front of the abstract you want, then will find
 the bibtex entry and save it to the kill ring.
 
 The functions `bibslurp/absurl-to-biburl' and `bibslurp/biburl-to-bib' are
-more general.  Specifically, they don't depend on bibslurp at all."
+more general."
   (interactive (list (or current-prefix-arg
                          (read-string "Link number: "))
                      (read-string "New label: ")))
