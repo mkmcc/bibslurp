@@ -27,15 +27,24 @@ Only numbered links are fontified.")
   (let ((map (make-keymap)))
     (suppress-keymap map)
     (define-key map (kbd "RET") 'bibslurp-slurp-bibtex)
+    (define-key map (kbd "z")   'bibslurp-slurp-bibtex)
+    (define-key map (kbd "SPC")   'scroll-up)
+    (define-key map (kbd "S-SPC") 'scroll-down)
+    (define-key map ">" 'end-of-buffer)
+    (define-key map "<" 'beginning-of-buffer)
+    (define-key map "r" 'isearch-backward)
+    (define-key map "s" 'isearch-forward)
+    (define-key map "q" 'bibslurp/quit)
     map)
   "Keymap for bibslurp mode.")
 
-(define-derived-mode bibslurp-mode fundamental-mode "bibslurp"
+(define-derived-mode bibslurp-mode fundamental-mode "Bib Slurp"
   "Major mode for perusing ADS search results and slurping bibtex
 entries to the kill-ring.  This is pretty specific, so you should
 only enter the mode via `bibslurp-query-ads'.  Requires the lynx
-browser to the installed."
-  (kill-all-local-variables)
+browser to the installed.
+
+\\<bibslurp-mode-map>"
   (use-local-map bibslurp-mode-map)
   (set (make-local-variable 'font-lock-defaults)
        '(bibslurp-font-lock-keywords)))
@@ -90,11 +99,13 @@ time by hitting 'q'."
       (goto-char (point-min))
       (bibslurp-mode)
       (window-configuration-to-register :bibslurp-window)
-      (switch-to-buffer buf)
-      (local-set-key (kbd "q")
-                     (lambda () (interactive)
-                       (kill-buffer)
-                       (jump-to-register :bibslurp-window))))))
+      (switch-to-buffer buf))))
+
+(defun bibslurp/quit ()
+  (interactive)
+  (when (eq major-mode 'bibslurp-mode)
+   (kill-buffer)
+   (jump-to-register :bibslurp-window)))
 
 (defun bibslurp/absurl-to-biburl (abs-url)
   "Take the URL of an ADS abstract page and return a URL for the
