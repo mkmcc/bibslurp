@@ -8,6 +8,15 @@
 ;; 3. submit to MELPA!
 ;; 4. long-term goal: replace lynx calls with internal emacs functions
 
+;;; utility functions
+
+(defun bibslurp/s-right (len s)
+  "Returns up to the LEN last chars of S.
+copied from s.el (https://github.com/magnars/s.el)"
+  (let ((l (length s)))
+    (if (> l len)
+        (substring s (- l len) l)
+      s)))
 
 ;;; start by making a rudimentary web browser
 
@@ -168,6 +177,20 @@ more general."
       (kill-new (bibslurp/biburl-to-bib bib-url new-label))
       (message "Saved bibtex entry to kill-ring.")))))
 
+(defun bibslurp/suggest-label ()
+  "Parse an abstract page and suggest a bibtex label.  Returns an
+empty string if no suggestion is found."
+  (let ((author
+         (save-excursion
+           (goto-char (point-min))
+           (if (re-search-forward "Authors:\\s-*\\[\\sw+\\]\\(\\sw+\\)[,;]" nil t)
+               (match-string-no-properties 1))))
+        (date
+         (save-excursion
+           (goto-char (point-min))
+           (if (re-search-forward "Date:\\s-*\\([0-9/]+\\)" nil t)
+               (match-string-no-properties 1)))))
+    (concat author (bibslurp/s-right 4 date))))
 
 (provide 'bibslurp)
 
