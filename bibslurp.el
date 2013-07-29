@@ -110,6 +110,8 @@ time by hitting 'q'."
     (delete-other-windows)))
 
 (defun bibslurp/quit ()
+  "Close the bibslurp buffer and restore the previous window
+configuration."
   (interactive)
   (when (eq major-mode 'bibslurp-mode)
    (kill-buffer)
