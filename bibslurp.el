@@ -104,15 +104,17 @@ time by hitting 'q'."
     (with-current-buffer buf
       (call-process "lynx" nil t nil "-dump" search-url)
       (goto-char (point-min))
-      (bibslurp-mode)
-      (window-configuration-to-register :bibslurp-window)
-      (switch-to-buffer buf))))
+      (bibslurp-mode))
+    (window-configuration-to-register :bibslurp-window)
+    (switch-to-buffer buf)
+    (delete-other-windows)))
 
 (defun bibslurp/quit ()
   (interactive)
   (when (eq major-mode 'bibslurp-mode)
    (kill-buffer)
-   (jump-to-register :bibslurp-window)))
+   (when (get-register :bibslurp-window)
+       (jump-to-register :bibslurp-window))))
 
 (defun bibslurp/absurl-to-biburl (abs-url)
   "Take the URL of an ADS abstract page and return a URL for the
