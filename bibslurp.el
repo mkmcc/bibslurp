@@ -4,14 +4,12 @@
 
 ;; TODO:
 ;; 1. see how this responds to bad input.  test for errors, etc.
-;; 2. make space and S-space page down and up in bibslurp-mode
-;; 3. make sure the autoloading is right...
-;; 4. submit to MELPA!
-;; 5. long-term goal: replace lynx calls with internal emacs functions
+;; 2. make sure the autoloading is right...
+;; 3. submit to MELPA!
+;; 4. long-term goal: replace lynx calls with internal emacs functions
+
 
 ;;; start by making a rudimentary web browser
-;;; -- use lynx for now, but eventually should replace this with
-;;;    internal emacs functions
 
 (defvar bibslurp-link-regexp "\\[\\([0-9]+\\)\\]"
   "Regular expression that tells bibslurp what links look like.
@@ -73,8 +71,8 @@ buffer doesn't conform to the expected \"lynx --dump\" format."
 ;;; stuff specific to ads
 
 (defun bibslurp/build-ads-url (search-string)
-  "Helper function which turns a search string (e.g. '^Quataert
-2008') into an ads search url.  Used by `bibslurp-query-ads'."
+  "Helper function which turns a search string (e.g. \"^Quataert
+2008\") into an ads search url.  Used by `bibslurp-query-ads'."
   (let ((base-url
          "http://adsabs.harvard.edu/cgi-bin/nph-basic_connect?qsearch=")
         (url-sep "+")
