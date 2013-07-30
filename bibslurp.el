@@ -118,7 +118,7 @@ configuration."
    (when (get-register :bibslurp-window)
        (jump-to-register :bibslurp-window))))
 
-(defun bibslurp/absurl-to-biburl (abs-url)
+(defun bibslurp/absurl-to-bibdata (abs-url)
   "Take the URL of an ADS abstract page and return a URL for the
 corresponding bibtex entry.  Return nil if not found."
   (with-temp-buffer
@@ -133,7 +133,9 @@ corresponding bibtex entry.  Return nil if not found."
                      "\\.\\s-*\\(.+\\)$")))
         (re-search-forward "^References$")
         (re-search-forward bib-link-regexp)
-        (match-string-no-properties 1)))))
+        (let ((bib-url (match-string-no-properties 1))
+              (new-label (bibslurp/suggest-label)))
+          (list bib-url new-label))))))
 
 (defun bibslurp/biburl-to-bib (bib-url &optional new-label)
   "Take the URL for an ADS bibtex entry and return the entry as a
@@ -157,7 +159,7 @@ with the argument NEW-LABEL."
         (concat (match-string-no-properties 0)
                 (buffer-substring bpoint (point)))))))
 
-(defun bibslurp-slurp-bibtex (link-number &optional new-label)
+(defun bibslurp-slurp-bibtex (link-number)
   "Automatically find the bibtex entry for an abstract in the
 NASA ADS database.
 
@@ -167,18 +169,19 @@ can call this function from the *Bibslurp* buffer.  It will prompt
 for the number in front of the abstract you want, then will find
 the bibtex entry and save it to the kill ring.
 
-The functions `bibslurp/absurl-to-biburl' and `bibslurp/biburl-to-bib' are
+The functions `bibslurp/absurl-to-bibdata' and `bibslurp/biburl-to-bib' are
 more general."
   (interactive (list (or current-prefix-arg
-                         (read-string "Link number: "))
-                     (read-string "New label: ")))
+                         (read-string "Link number: "))))
   (let* ((abs-url (bibslurp/follow-link link-number))
-         (bib-url (bibslurp/absurl-to-biburl abs-url)))
+         (bib-data (bibslurp/absurl-to-bibdata abs-url)))
     (cond
-     ((eq bib-url nil)
+     ((eq bib-data nil)
       (message "Couldn't find link to bibtex entry."))
      (t
-      (kill-new (bibslurp/biburl-to-bib bib-url new-label))
+      (let ((bib-url (car bib-data))
+            (new-label (cadr bib-data)))
+        (kill-new (bibslurp/biburl-to-bib bib-url new-label)))
       (message "Saved bibtex entry to kill-ring.")))))
 
 (defun bibslurp/suggest-label ()
