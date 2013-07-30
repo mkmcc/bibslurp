@@ -24,9 +24,9 @@
 ;; previous window configuration.
 
 ;; Note that this functionality requires the lynx browser
-;; (http://lynx.browser.org/) -- I make pretty heavy use of its
-;; systemn of numbered links.  I do have a long-term goal of replacing
-;; the lynx calls with internal emacs functions.
+;; (http://lynx.isc.org/) -- I make pretty heavy use of its system of
+;; numbered links.  I do have a long-term goal of replacing the lynx
+;; calls with internal emacs functions.
 
 ;;; Example usage:
 
