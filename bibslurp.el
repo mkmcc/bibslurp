@@ -4,9 +4,8 @@
 
 ;; TODO:
 ;; 1. see how this responds to bad input.  test for errors, etc.
-;; 2. make sure the autoloading is right...
-;; 3. submit to MELPA!
-;; 4. long-term goal: replace lynx calls with internal emacs functions
+;; 2. submit to MELPA!
+;; 3. long-term goal: replace lynx calls with internal emacs functions
 
 ;;; utility functions
 
@@ -17,6 +16,7 @@ copied from s.el (https://github.com/magnars/s.el)"
     (if (> l len)
         (substring s (- l len) l)
       s)))
+
 
 ;;; start by making a rudimentary web browser
 
@@ -119,8 +119,14 @@ configuration."
        (jump-to-register :bibslurp-window))))
 
 (defun bibslurp/absurl-to-bibdata (abs-url)
-  "Take the URL of an ADS abstract page and return a URL for the
-corresponding bibtex entry.  Return nil if not found."
+  "Take the URL of an ADS abstract page and return data about the
+corresponding bibtex entry.
+
+This list has the form (bib-url new-label), where bib-url is the
+bib-url of the ADS bibtex page and new-label is the suggested
+label.
+
+Return nil if not found."
   (with-temp-buffer
     ; use lynx -dump to parse the html, find links, etc.
     (call-process "lynx" nil t nil "-dump" abs-url)
