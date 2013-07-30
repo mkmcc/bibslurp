@@ -41,7 +41,7 @@ Only numbered links are fontified.")
     (define-key map "<" 'beginning-of-buffer)
     (define-key map "r" 'isearch-backward)
     (define-key map "s" 'isearch-forward)
-    (define-key map "q" 'bibslurp/quit)
+    (define-key map "q" 'bibslurp-quit)
     map)
   "Keymap for bibslurp mode.")
 
@@ -109,7 +109,7 @@ time by hitting 'q'."
     (switch-to-buffer buf)
     (delete-other-windows)))
 
-(defun bibslurp/quit ()
+(defun bibslurp-quit ()
   "Close the bibslurp buffer and restore the previous window
 configuration."
   (interactive)
