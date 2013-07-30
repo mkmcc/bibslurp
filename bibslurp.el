@@ -126,7 +126,9 @@ This list has the form (bib-url new-label), where bib-url is the
 bib-url of the ADS bibtex page and new-label is the suggested
 label.
 
-Return nil if not found."
+new-label may be nil if a bibtex url is found, but it can't
+suggest a new label.  If the bibtex url is not found, this
+function simply returns nil."
   (with-temp-buffer
     ; use lynx -dump to parse the html, find links, etc.
     (call-process "lynx" nil t nil "-dump" abs-url)
