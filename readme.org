@@ -1,4 +1,4 @@
-#+TITLE bibslurp.el --- retrieve BibTeX entries from NASA ADS
+#+TITLE: bibslurp.el --- retrieve BibTeX entries from NASA ADS
 
  Copyright (C) 2013 Mike McCourt
 
