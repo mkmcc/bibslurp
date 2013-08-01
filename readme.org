@@ -1,0 +1,56 @@
+#+TITLE bibslurp.el --- retrieve BibTeX entries from NASA ADS
+
+ Copyright (C) 2013 Mike McCourt
+
+* Commentary:
+  Provides a function `bibslurp-query-ads', which reads a search
+  string from the minibuffer, sends the query to NASA ADS
+  (http://adswww.harvard.edu/), and displays the results in a new
+  buffer called "ADS Search Results".
+
+  The "ADS Search Results" buffer opens in `bibslurp-mode', which
+  provides a few handy functions.  Typing the number preceding an
+  abstract and hitting RET calls `bibslurp-slurp-bibtex', which
+  fetches the bibtex entry corresponding to the abstract and saves it
+  to the kill ring.  If you forget to enter a number before hitting
+  RET, it will prompt you for one.
+
+  Some other keybindings behave as you might expect: typing 'q' quits
+  bibslurp-mode and restores the previous window configuration.  The
+  keys 's' and 'r' trigger forward and reverse isearches, '<' and '>'
+  jump to the beginning and end of the buffer, and SPC and SHIFT-SPC
+  scroll up and down.
+
+  Note that this functionality requires the lynx browser
+  (http://lynx.isc.org/) -- I make pretty heavy use of its system of
+  numbered links.  I do have a long-term goal of replacing the lynx
+  calls with internal emacs functions.
+
+* Example usage:
+  1. add an entry to a bibtex buffer:
+     #+BEGIN_EXAMPLE
+     M-x bibslurp-query-ads RET ^Quataert 2008
+     7 RET
+     q  
+     C-y
+     #+END_EXAMPLE
+
+* Installation:
+  Use package.el. You'll need to add MELPA to your archives:
+
+  #+BEGIN_SRC emacs-lisp
+  (require 'package)
+  (add-to-list 'package-archives
+               '("melpa" . "http://melpa.milkbox.net/packages/") t)
+  #+END_SRC
+
+  Alternatively, you can just save this file and do the standard
+  #+BEGIN_SRC emacs-lisp
+  (add-to-list 'load-path "/path/to/bibslurp.el")
+  (require 'bibslurp)
+  #+END_SRC
+
+* TODO:
+  1. submit to MELPA
+  2. long-term goal: replace lynx calls with internal emacs functions
+
