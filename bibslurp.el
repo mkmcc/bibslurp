@@ -49,9 +49,7 @@
 ;; (require 'bibslurp)
 
 ;;; TODO:
-;; 1. see how this responds to bad input.  test for errors, etc.
-;; 2. submit to MELPA!
-;; 3. long-term goal: replace lynx calls with internal emacs functions
+;; 1. long-term goal: replace lynx calls with internal emacs functions
 
 ;;; Code:
 
