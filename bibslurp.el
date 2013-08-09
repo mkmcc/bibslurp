@@ -175,43 +175,42 @@ label.
 new-label may be nil if a bibtex url is found, but it can't
 suggest a new label.  If the bibtex url is not found, this
 function simply returns nil."
-  (with-temp-buffer
-    ; use lynx -dump to parse the html, find links, etc.
-    (call-process "lynx" nil t nil "-dump" abs-url)
-    (goto-char (point-min))
-    ; look for, e.g. "[25]Bibtex entry for this abstract"
-    (when (re-search-forward (concat bibslurp-link-regexp "Bibtex") nil t)
-      ; look for, e.g. " 25. http://..."
-      (let ((bib-link-regexp
-             (concat "^\\s-*" (match-string-no-properties 1)
-                     "\\.\\s-*\\(.+\\)$")))
-        (re-search-forward "^References$")
-        (re-search-forward bib-link-regexp)
-        (let ((bib-url (match-string-no-properties 1))
-              (new-label (bibslurp/suggest-label)))
-          (list bib-url new-label))))))
+  (let ((buf (url-retrieve-synchronously abs-url)))
+    ;; define a url string as anything in double quotes, that doesn't
+    ;; contain a double quote.  I think this is valid...
+    ;;
+    ;; I'm not sure if this regexp should be more permissive about
+    ;; matching whitespace in different parts of the tag.  this seems
+    ;; to work for ADS at least.
+    (let ((bib-link-regex
+           "<a\\s-*href=\\\"\\([^\\\"]+?\\)\\\"\\s-*/?>\\s-*Bibtex"))
+      (with-current-buffer buf
+        (goto-char (point-min))
+        (when (re-search-forward bib-link-regex nil t)
+          (let ((bib-url (match-string-no-properties 1))
+                (new-label (bibslurp/suggest-label)))
+            (list bib-url new-label)))))))
 
 (defun bibslurp/biburl-to-bib (bib-url &optional new-label)
   "Take the URL for an ADS bibtex entry and return the entry as a
 string.  Optionally, replace the default (and useless) ADS label
 with the argument NEW-LABEL."
-  (with-temp-buffer
-    ; lynx -source doesn't process the text at all
-    (call-process "lynx" nil t nil "-source" bib-url)
-    ; first, look for a bibtex definition and replace the label if
-    ; appropriate.
-    (goto-char (point-min))
-    (when (re-search-forward "@\\sw+{\\([^,]+\\)," nil t)
-      (when (and new-label (not (string-equal new-label "")))
-        (replace-match new-label t t nil 1))
-      ; next, find the definition and return it.  use the nifty
-      ; function `forward-sexp' to navigate to the end.
+  (let ((buf (url-retrieve-synchronously bib-url)))
+    (with-current-buffer buf
       (goto-char (point-min))
-      (re-search-forward "@\\sw+")
-      (let ((bpoint (point)))
-        (forward-sexp)
-        (concat (match-string-no-properties 0)
-                (buffer-substring bpoint (point)))))))
+      ;; first, look for a bibtex definition and replace the label if
+      ;; appropriate.
+      (when (re-search-forward "@\\sw+{\\([^,]+\\)," nil t)
+        (when (and new-label (not (string-equal new-label "")))
+          (replace-match new-label t t nil 1))
+        ;; next, find the definition and return it.  use the nifty
+        ;; function `forward-sexp' to navigate to the end.
+        (goto-char (point-min))
+        (re-search-forward "@\\sw+")
+        (let ((bpoint (point)))
+          (forward-sexp)
+          (concat (match-string-no-properties 0)
+                  (buffer-substring bpoint (point))))))))
 
 (defun bibslurp-slurp-bibtex (link-number)
   "Automatically find the bibtex entry for an abstract in the
@@ -238,6 +237,8 @@ more general."
         (kill-new (bibslurp/biburl-to-bib bib-url new-label)))
       (message "Saved bibtex entry to kill-ring.")))))
 
+;; note: this worked when I used lynx -dump, but not with the raw html
+;; data.  need to actually parse the html...  bummer.
 (defun bibslurp/suggest-label ()
   "Parse an abstract page and suggest a bibtex label.  Returns an
 empty string if no suggestion is found."
