@@ -23,11 +23,6 @@
 ;; to the kill ring.  Typing 'q' quits bibslurp-mode and restores the
 ;; previous window configuration.
 
-;; Note that this functionality requires the lynx browser
-;; (http://lynx.isc.org/) -- I make pretty heavy use of its system of
-;; numbered links.  I do have a long-term goal of replacing the lynx
-;; calls with internal emacs functions.
-
 ;;; Example usage:
 
 ;; add an entry to a bibtex buffer:
@@ -143,8 +138,7 @@ time by hitting 'q'."
         (buf (get-buffer-create "ADS Search Results"))
         (inhibit-read-only t)
         (clean-list))
-    (with-temp-buffer ;(get-buffer-create "ADS Scratch")
-      ;(erase-buffer)
+    (with-temp-buffer
       (url-insert-file-contents search-url)
       (setq clean-list (-map 'clean-entry (read-table)))
       (setq bibslurp/link-list '())
