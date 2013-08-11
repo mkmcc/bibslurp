@@ -6,6 +6,7 @@
 ;; URL: https://github.com/mkmcc/bibslurp
 ;; Version: 0.0.1
 ;; Keywords: bibliography, nasa ads
+;; Package-Requires: ((s "1.6.0") (dash "1.5.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -20,16 +21,36 @@
 ;; provides a few handy functions.  Typing the number preceding an
 ;; abstract and hitting RET calls `bibslurp-slurp-bibtex', which
 ;; fetches the bibtex entry corresponding to the abstract and saves it
-;; to the kill ring.  Typing 'q' quits bibslurp-mode and restores the
+;; to the kill ring.  Typing 'a' instead pulls up the abstract page.
+;; At anytime, you can hit 'q' to quit bibslurp-mode and restore the
 ;; previous window configuration.
 
 ;;; Example usage:
 
 ;; add an entry to a bibtex buffer:
 ;;   M-x bibslurp-query-ads RET ^Quataert 2008
-;;   7 RET
+;;   1 RET
 ;;   q
 ;;   C-y
+
+;; For more examples and information see the project page at
+;; http://astro.berkeley.edu/~mkmcc/software/bibslurp.html
+
+;;; Notes about the implementation:
+
+;; 1. As far as I know, ADS doesn't have an API for searching its
+;;   database, and emacs doesn't have functionality to parse html.
+;;   Since I don't want to implement a browser in emacs lisp, that
+;;   leaves me parsing the html pages with regexps.  While that would
+;;   be a terrible idea under ordinary circumstances, the ADS pages
+;;   are all automatically generated, so they should conform to a
+;;   pretty regular format.  That gives me some hope...
+
+;; 2. There are many ways you can customize the behaviour of biblurp.
+;;    I define font-lock faces at the beginning of the file so you can
+;;    add these to your color theme.  I also run a mode hook at the
+;;    end of `bibslurp-mode', so you can inject your own code at that
+;;    point.
 
 ;;; Installation:
 
@@ -44,11 +65,17 @@
 ;; (require 'bibslurp)
 
 ;;; TODO:
-;; 1. long-term goal: replace lynx calls with internal emacs functions
+;;  1. add hooks for show-abstract?
+;;  2. finish documentation
+;;  3. clean up code
+;;  4. rethink regexps
+
 
 ;;; Code:
 (require 's)
 (require 'dash)
+
+
 
 ;;; start by making a rudimentary web browser
 ;; define font-lock faces
@@ -92,17 +119,19 @@
 (define-derived-mode bibslurp-mode fundamental-mode "BibSlurp"
   "Major mode for perusing ADS search results and slurping bibtex
 entries to the kill-ring.  This is pretty specific, so you should
-only enter the mode via `bibslurp-query-ads'.  Requires the lynx
-browser to the installed.
+only enter the mode via `bibslurp-query-ads'.
 
 \\<bibslurp-mode-map>"
   (use-local-map bibslurp-mode-map))
 
 (defun bibslurp/follow-link (number)
   "take a link number and return the corresponding url as a
-string.  argument may be either an integer or a string.  returns
-nil if the link number is invalid, throws an error if the current
-buffer doesn't conform to the expected \"lynx --dump\" format."
+string.
+
+argument may be either an integer or a string.  returns nil if
+the link number is invalid.  links are stored in the list
+`bibslurp/link-list', which is populated by `bibslurp-query-ads'
+once the search results are returned."
   (interactive "P")
   (let* ((link-number
           (if (stringp number)
@@ -110,6 +139,14 @@ buffer doesn't conform to the expected \"lynx --dump\" format."
             number)))
     (nth (- link-number 1) bibslurp/link-list)))
 
+(defun bibslurp-quit ()
+  "Close the bibslurp buffer and restore the previous window
+configuration."
+  (interactive)
+  (when (eq major-mode 'bibslurp-mode)
+    (kill-buffer)
+    (when (get-register :bibslurp-window)
+      (jump-to-register :bibslurp-window))))
 
 (defun bibslurp/build-ads-url (search-string)
   "Helper function which turns a search string (e.g. \"^Quataert
@@ -122,6 +159,8 @@ buffer doesn't conform to the expected \"lynx --dump\" format."
             (replace-regexp-in-string " " url-sep search-string)
             url-end)))
 
+
+;; functions to parse and display the search results page.
 (defvar bibslurp/link-list nil
   "list of abstract URLs for the current search.")
 
@@ -131,8 +170,8 @@ buffer doesn't conform to the expected \"lynx --dump\" format."
 the query to NASA ADS.  Displays results in a new buffer called
 \"ADS Search Results\" and enters `bibslurp-mode'.  You can
 retrieve a bibtex entry by typing the number in front of the
-abstract link and hitting enter.  You can exit the mode at any
-time by hitting 'q'."
+abstract link and hitting enter.  Hit 'a' instead to pull up the
+abstract.  You can exit the mode at any time by hitting 'q'."
   (interactive (list (read-string "Search string: ")))
   (let ((search-url (bibslurp/build-ads-url search-string))
         (buf (get-buffer-create "ADS Search Results"))
@@ -140,7 +179,7 @@ time by hitting 'q'."
         (clean-list))
     (with-temp-buffer
       (url-insert-file-contents search-url)
-      (setq clean-list (-map 'clean-entry (read-table)))
+      (setq clean-list (-map 'bibslurp/clean-entry (bibslurp/read-table)))
       (setq bibslurp/link-list '())
       (--map (add-to-list 'bibslurp/link-list (car (last it)) t) clean-list))
     (with-current-buffer buf
@@ -162,14 +201,17 @@ time by hitting 'q'."
       (save-excursion
         (insert
          (mapconcat 'identity
-                    (--map (apply 'print-entry it) clean-list)
+                    (--map (apply 'bibslurp/print-entry it) clean-list)
                     "\n\n\n\n")))
       (bibslurp-mode))
     (window-configuration-to-register :bibslurp-window)
     (switch-to-buffer buf)
     (delete-other-windows)))
 
-(defun read-table ()
+(defun bibslurp/read-table ()
+  "Parse the HTML from a search results page.
+
+TODO: describe in more detail.  also rethink this."
   (goto-char (point-min))
   ;; search results are printed in a <table> element.  annoyingly, one
   ;; result actually spans *two* adjacent table rows, so we keep a
@@ -198,8 +240,13 @@ time by hitting 'q'."
           (setq temp '())))))
     rows))
 
-(defun clean-entry (entry)
-  ""
+(defun bibslurp/clean-entry (entry)
+  "Process the data returned by `bibslurp/read-table' into
+something human readable.
+
+Note that this function depends on the *order* of <td> elements
+not changing in the ADS pages.  I pretty much have to hope that
+that's the case..."
   (let ((num       (nth 0 entry))
         (link-data (nth 1 entry))
         (score     (nth 3 entry))
@@ -211,7 +258,10 @@ time by hitting 'q'."
             (abs-name (match-string-no-properties 2 link-data)))
         (list num score abs-name date authors title abs-url)))))
 
-(defun print-entry (num score abs-name date authors title abs-url)
+(defun bibslurp/print-entry (num score abs-name date authors title abs-url)
+  "Format a single search result for printing.
+
+TODO: this is really messy code.  cleanup."
   (let* ((fmt-num (concat
                    (make-string (- 3 (length num)) ? )
                    (format "[%s].  %s"
@@ -228,15 +278,8 @@ time by hitting 'q'."
             "\n\n"
             (when title (s-word-wrap 80 title)))))
 
-(defun bibslurp-quit ()
-  "Close the bibslurp buffer and restore the previous window
-configuration."
-  (interactive)
-  (when (eq major-mode 'bibslurp-mode)
-   (kill-buffer)
-   (when (get-register :bibslurp-window)
-       (jump-to-register :bibslurp-window))))
 
+;; functions to find and retrieve bibtex entries
 (defun bibslurp/absurl-to-bibdata (abs-url)
   "Take the URL of an ADS abstract page and return data about the
 corresponding bibtex entry.
@@ -310,8 +353,6 @@ more general."
         (kill-new (bibslurp/biburl-to-bib bib-url new-label)))
       (message "Saved bibtex entry to kill-ring.")))))
 
-;; note: this worked when I used lynx -dump, but not with the raw html
-;; data.  need to actually parse the html...  bummer.
 (defun bibslurp/suggest-label ()
   "Parse an abstract page and suggest a bibtex label.  Returns an
 empty string if no suggestion is found."
@@ -326,6 +367,10 @@ empty string if no suggestion is found."
           (when (re-search-forward date-regexp nil t)
             (let ((date (match-string-no-properties 1)))
               (concat author (s-right 4 date)))))))))
+
+
+
+;;; functions to display abstracts
 
 (defun bibslurp/format-abs-meta ()
   "copy title, authors, and source from the header metadata."
@@ -359,7 +404,8 @@ empty string if no suggestion is found."
     (s-word-wrap 80 (match-string 1))))
 
 (defun bibslurp/format-abs ()
-  "from inside a buffer containing "
+  "take a buffer containing the HTML for an abstract page and
+turn it into something human readable."
   (let ((meta (bibslurp/format-abs-meta))
         (abs (bibslurp/format-abs-text))
         (inhibit-read-only t))
@@ -373,7 +419,7 @@ empty string if no suggestion is found."
         (switch-to-buffer buf)))))
 
 (defun bibslurp-show-abstract (link-number)
-  ""
+  "Display the abstract page for a specified link number."
   (interactive (list (or current-prefix-arg
                          (read-string "Link number: "))))
   (let* ((abs-url (bibslurp/follow-link link-number)))
