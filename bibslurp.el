@@ -90,6 +90,7 @@
     (define-key map "r" 'isearch-backward)
     (define-key map "s" 'isearch-forward)
     (define-key map "q" 'bibslurp-quit)
+    (define-key map "a" 'bibslurp-show-abstract)
     map)
   "Keymap for bibslurp mode.")
 
@@ -320,6 +321,58 @@ empty string if no suggestion is found."
           (when (re-search-forward date-regexp nil t)
             (let ((date (match-string-no-properties 1)))
               (concat author (s-right 4 date)))))))))
+
+(defun bibslurp/format-abs-meta ()
+  "copy title, authors, and source from the header metadata."
+  (goto-char (point-min))
+  (when (re-search-forward
+         "<meta\\s-+name=\"citation_title\"\\s-+content=\"\\(.*?\\)\""
+         nil t)
+    (let ((title (match-string 1)))
+      (goto-char (point-min))
+      (when (re-search-forward
+             "<meta\\s-+name=\"citation_authors\"\\s-+content=\"\\(.*?\\)\""
+             nil t)
+        (let ((authors (match-string 1)))
+          (goto-char (point-min))
+          (when (re-search-forward
+                 "<meta\\s-+name=\"dc\\.source\"\\s-+content=\"\\(.*?\\)\""
+                 nil t)
+            (let ((source (match-string 1)))
+              (concat title "\n" authors "\n" source))))))))
+
+(defun bibslurp/format-abs-text ()
+  "return the abstract text"
+  ;; FIXME: this presumes that the abstract doesn't have any <'s in
+  ;; it.  so it will break on abstracts that contain html tags such as
+  ;; <i> or <sub>.  this is pretty common on ads...
+  (when (re-search-forward
+         "<h3[^>]+>\\s-*Abstract\\s-*</h3>\\([^<]+\\)" nil t)
+    (s-word-wrap 80 (match-string 1))))
+
+(defun bibslurp/format-abs ()
+  "from inside a buffer containing "
+  (let ((meta (bibslurp/format-abs-meta))
+        (abs (bibslurp/format-abs-text))
+        (inhibit-read-only t))
+    (when (and meta abs)
+      (let ((buf (get-buffer-create "ADS Abstract")))
+        (with-current-buffer buf
+          (erase-buffer)
+          (insert meta "\n\n\n" abs)
+          (view-mode)
+          (local-set-key (kbd "q") 'kill-buffer))
+        (switch-to-buffer buf)))))
+
+(defun bibslurp-show-abstract (link-number)
+  ""
+  (interactive (list (or current-prefix-arg
+                         (read-string "Link number: "))))
+  (let* ((abs-url (bibslurp/follow-link link-number)))
+    (when abs-url
+      (with-temp-buffer
+        (url-insert-file-contents (bibslurp/follow-link link-number))
+        (bibslurp/format-abs)))))
 
 (provide 'bibslurp)
 
