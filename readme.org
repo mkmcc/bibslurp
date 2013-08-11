@@ -56,9 +56,8 @@
   You might consider giving it a keybinding, e.g.
   #+BEGIN_SRC emacs-lisp
   (global-set-key (kbd "C-x M-b") 'bibslurp-query-ads)
-  #+END_SRC
+  #+END_SEC
 
 * TODO:
-  1. submit to MELPA
-  2. long-term goal: replace lynx calls with internal emacs functions
+  1. long-term goal: replace lynx calls with internal emacs functions
 
