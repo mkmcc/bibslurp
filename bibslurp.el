@@ -153,7 +153,18 @@ time by hitting 'q'."
       (erase-buffer)
       (insert "ADS Search Results for \""
               (propertize search-string 'face 'font-lock-string-face)
-              "\"\n\n\n\n")
+              "\"\n\n")
+      (insert
+       (propertize
+        (concat
+         "Scroll with SPC and SHIFT-SPC, or search using 's' and 'r'."
+         "\n\n"
+         "* To slurp a bibtex entry, type the number of the abstract and hit RET."
+         "\n\n"
+         "* To view an abstract, type the number of the abstract and hit 'a'."
+         "\n\n"
+         "* To quit and restore the previous window configuration, hit 'q'."
+         "\n\n\n\n") 'face 'font-lock-comment-face))
       (save-excursion
         (insert
          (mapconcat 'identity
