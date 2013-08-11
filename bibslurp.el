@@ -20,8 +20,12 @@
 ;; provides a few handy functions.  Typing the number preceding an
 ;; abstract and hitting RET calls `bibslurp-slurp-bibtex', which
 ;; fetches the bibtex entry corresponding to the abstract and saves it
-;; to the kill ring.  Typing 'q' quits bibslurp-mode and restores the
-;; previous window configuration.
+;; to the kill ring.  Or hit 'a' instead to pull up the abstract.
+;; Typing 'q' quits bibslurp-mode and restores the previous window
+;; configuration.
+
+;; For more information and examples see the project website here:
+;; http://astro.berkeley.edu/~mkmcc/software/bibslurp.html
 
 ;; Note that this functionality requires the lynx browser
 ;; (http://lynx.isc.org/) -- I make pretty heavy use of its system of
@@ -88,6 +92,7 @@ Only numbered links are fontified.")
     (define-key map "r" 'isearch-backward)
     (define-key map "s" 'isearch-forward)
     (define-key map "q" 'bibslurp-quit)
+    (define-key map "a" 'bibslurp-show-abstract)
     map)
   "Keymap for bibslurp mode.")
 
@@ -252,6 +257,30 @@ empty string if no suggestion is found."
            (if (re-search-forward "Date:\\s-*\\([0-9/]+\\)" nil t)
                (match-string-no-properties 1)))))
     (concat author (bibslurp/s-right 4 date))))
+
+
+
+;;; function to display abstracts
+
+(defun bibslurp-show-abstract (link-number)
+  "Display the abstract page for a specified link number."
+  (interactive (list (or current-prefix-arg
+                         (read-string "Link number: "))))
+  (let* ((abs-url (bibslurp/follow-link link-number))
+         (inhibit-read-only t)
+         (buf (get-buffer-create "ADS Abstract")))
+    (if (eq abs-url nil)
+        (progn
+          (message "Couldn't find abstract %s." link-number)
+          (kill-buffer buf))
+      (with-current-buffer buf
+        (erase-buffer)
+        (call-process "lynx" nil t nil "-dump" abs-url)
+        (goto-char (point-min))
+        (re-search-forward "Abstract$" nil t)
+        (view-mode)
+        (local-set-key (kbd "q") 'kill-buffer))
+      (switch-to-buffer buf))))
 
 (provide 'bibslurp)
 
