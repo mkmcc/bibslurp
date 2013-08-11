@@ -26,6 +26,9 @@
   numbered links.  I do have a long-term goal of replacing the lynx
   calls with internal emacs functions.
 
+  For more information, check out the project website:
+  [[http://astro.berkeley.edu/~mkmcc/software/bibslurp.html]]
+
 * Example usage:
   1. add an entry to a bibtex buffer:
      #+BEGIN_EXAMPLE
