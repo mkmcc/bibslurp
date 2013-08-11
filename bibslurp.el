@@ -348,11 +348,14 @@ empty string if no suggestion is found."
 
 (defun bibslurp/format-abs-text ()
   "return the abstract text"
-  ;; FIXME: this presumes that the abstract doesn't have any <'s in
-  ;; it.  so it will break on abstracts that contain html tags such as
-  ;; <i> or <sub>.  this is pretty common on ads...
+  ;; abstracts are displayed as
+  ;;   <h3 align="center">Abstract</h3>
+  ;;   abstract text....
+  ;;   <hr>
+  ;; the <hr> isn't required by html, but it's there in ADS.  so I can
+  ;; quasi-safely use it to mark the end of the abstract
   (when (re-search-forward
-         "<h3[^>]+>\\s-*Abstract\\s-*</h3>\\([^<]+\\)" nil t)
+         "<h3[^>]+>\\s-*Abstract\\s-*</h3>\\(\\(.*\n?\\)+?\\)<hr>" nil t)
     (s-word-wrap 80 (match-string 1))))
 
 (defun bibslurp/format-abs ()
