@@ -69,6 +69,7 @@
 ;;  2. finish documentation
 ;;  3. clean up code
 ;;  4. rethink regexps
+;;  5. add a function to download pdfs?
 
 
 ;;; Code:
