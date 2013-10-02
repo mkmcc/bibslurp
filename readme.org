@@ -35,6 +35,46 @@
      C-y
      #+END_EXAMPLE
 
+* Description:
+  Creating a BibTeX file is one of the more tedious aspects of writing
+  a paper.  The NASA ADS system helps a lot by making bibliography
+  data available and easy to find, but there's still the matter of
+  copying and pasting it into your local database.  Since I find that
+  process annoying, I wrote =BibSlurp=, a set of emacs functions to
+  speed it along.
+
+  BibSlurp enables you to query nasa ads without leaving emacs.  As an
+  example, typing =M-x bibslurp-query-ads white rees RET= brings up
+  the following buffer: (the search string is sent directly to ADS, so
+  things like =^white rees= or =^white 1978= will also work as
+  expected.)
+
+  #+ATTR_HTML: alt="search-results" title="search-results" width="602" height="856"
+  [[file:images/search-results.png]]
+
+  Let's say I want to add the second paper to my =.bib= database.
+  All I have to do is  hit =2 RET=.  After waiting for the
+  appropriate files to download, =BibSlurp= responds with the message
+  =saved bibtex entry to kill ring=.
+
+  #+ATTR_HTML: alt="saved-to-kill-ring" title="saved-to-kill-ring" width="432" height="295" class="pad bottom left"
+  [[file:images/saved-to-kill-ring.png]]
+
+  From here, hitting =q= takes me back to my =.bib= file, where I can
+  yank the entry with =C-y=: (note that bibslurp automatically
+  generates a label for the entry)
+  
+  #+ATTR_HTML: alt="yanked-entry" title="yanked-entry" width="602" height="466"
+  [[file:images/yanked-entry.png]]
+
+  If I'm not sure which paper I want, I can pull up the abstract by
+  hitting =2 a=.  From there, =q= takes be back to the search
+  results.
+
+  #+ATTR_HTML: alt="abstract-view" title="abstract-view" width="602" height="466"
+  [[file:images/abstract-view.png]]
+
+
 * Installation:
   Use package.el. You'll need to add MELPA to your archives:
 
