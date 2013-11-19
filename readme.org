@@ -2,46 +2,22 @@
 
  Copyright (C) 2013 Mike McCourt
 
-* Commentary:
-  Provides a function `bibslurp-query-ads', which reads a search
-  string from the minibuffer, sends the query to NASA ADS
-  (http://adswww.harvard.edu/), and displays the results in a new
-  buffer called "ADS Search Results".
-
-  The "ADS Search Results" buffer opens in `bibslurp-mode', which
-  provides a few handy functions.  Typing the number preceding an
-  abstract and hitting RET calls `bibslurp-slurp-bibtex', which
-  fetches the bibtex entry corresponding to the abstract and saves it
-  to the kill ring.  If you forget to enter a number before hitting
-  RET, it will prompt you for one.
-
-  Some other keybindings behave as you might expect: typing 'q' quits
-  bibslurp-mode and restores the previous window configuration.  The
-  keys 's' and 'r' trigger forward and reverse isearches, '<' and '>'
-  jump to the beginning and end of the buffer, and SPC and SHIFT-SPC
-  scroll up and down.
-
-  Note that this functionality requires the lynx browser
-  (http://lynx.isc.org/) -- I make pretty heavy use of its system of
-  numbered links.  I do have a long-term goal of replacing the lynx
-  calls with internal emacs functions.
-
 * Example usage:
   1. add an entry to a bibtex buffer:
      #+BEGIN_EXAMPLE
      M-x bibslurp-query-ads RET ^Quataert 2008
-     7 RET
+     1 RET
      q  
      C-y
      #+END_EXAMPLE
 
 * Description:
   Creating a BibTeX file is one of the more tedious aspects of writing
-  a paper.  The NASA ADS system helps a lot by making bibliography
-  data available and easy to find, but there's still the matter of
-  copying and pasting it into your local database.  Since I find that
-  process annoying, I wrote =BibSlurp=, a set of emacs functions to
-  speed it along.
+  a paper.  The NASA ADS system(http://adswww.harvard.edu/) helps a
+  lot by making bibliography data available and easy to find, but
+  there's still the matter of copying and pasting it into your local
+  database.  Since I find that process annoying, I wrote =BibSlurp=, a
+  set of emacs functions to speed it along.
 
   BibSlurp enables you to query nasa ads without leaving emacs.  As an
   example, typing =M-x bibslurp-query-ads white rees RET= brings up
@@ -89,6 +65,10 @@
   (add-to-list 'load-path "/path/to/bibslurp.el")
   (require 'bibslurp)
   #+END_SRC
+
+  Note that =bibslurp= requires the [[https://github.com/magnars/s.el][s]] and [[https://github.com/magnars/dash.el][dash]] libraries.  If you
+  install bibslurp manually, you need to make sure you also have
+  these in place.
 
   You might consider giving it a keybinding, e.g.
   #+BEGIN_SRC emacs-lisp
