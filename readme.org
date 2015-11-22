@@ -57,7 +57,7 @@
   #+BEGIN_SRC emacs-lisp
   (require 'package)
   (add-to-list 'package-archives
-               '("melpa" . "http://melpa.milkbox.net/packages/") t)
+               '("melpa" . "https://melpa.org/packages/") t)
   #+END_SRC
 
   Alternatively, you can just save this file and do the standard
