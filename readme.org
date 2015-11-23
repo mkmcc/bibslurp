@@ -1,6 +1,7 @@
 #+TITLE: bibslurp.el --- retrieve BibTeX entries from NASA ADS
 
  Copyright (C) 2013 Mike McCourt
+ license: [[https://gnu.org/licenses/gpl-3.0.txt][GPLv3]]
 
 * Example usage:
   1. add an entry to a bibtex buffer:
