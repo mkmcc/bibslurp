@@ -178,6 +178,9 @@ configuration."
 (defvar bibslurp/link-list nil
   "list of abstract URLs for the current search.")
 
+(defvar bibslurp-query-history nil
+  "History for `bibslurp-query-ads'.")
+
 ;;;###autoload
 (defun bibslurp-query-ads (&optional search-string)
   "Interactive function which asks for a search string and sends
@@ -186,7 +189,7 @@ the query to NASA ADS.  Displays results in a new buffer called
 retrieve a bibtex entry by typing the number in front of the
 abstract link and hitting enter.  Hit 'a' instead to pull up the
 abstract.  You can exit the mode at any time by hitting 'q'."
-  (interactive (list (read-string "Search string: ")))
+  (interactive (list (read-string "Search string: " nil 'bibslurp-query-history)))
   (let ((search-url (bibslurp/build-ads-url search-string))
         (buf (get-buffer-create "ADS Search Results"))
         (inhibit-read-only t)
