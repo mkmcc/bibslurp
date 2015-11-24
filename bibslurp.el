@@ -179,7 +179,7 @@ configuration."
   "list of abstract URLs for the current search.")
 
 ;;;###autoload
-(defun bibslurp-query-ads (&optional search-string)
+(defun bibslurp-query-ads (search-string)
   "Interactive function which asks for a search string and sends
 the query to NASA ADS.  Displays results in a new buffer called
 \"ADS Search Results\" and enters `bibslurp-mode'.  You can
