@@ -220,6 +220,8 @@ abstract.  You can exit the mode at any time by hitting 'q'."
       (bibslurp-mode))
     (window-configuration-to-register :bibslurp-window)
     (switch-to-buffer buf)
+    (setq buffer-read-only t)
+    (set-buffer-modified-p nil)
     (delete-other-windows)))
 
 (defun bibslurp/read-table ()
