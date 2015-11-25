@@ -82,7 +82,6 @@
 ;;  2. finish documentation
 ;;  3. clean up code
 ;;  4. rethink regexps
-;;  5. add a function to download pdfs?
 
 
 ;;; Code:
@@ -129,16 +128,26 @@
     (suppress-keymap map)
     (define-key map (kbd "RET") 'bibslurp-slurp-bibtex)
     (define-key map (kbd "z")   'bibslurp-slurp-bibtex)
+    (define-key map "a" 'bibslurp-show-abstract)
+    ;; Navigation
     (define-key map (kbd "SPC")   'scroll-up)
     (define-key map (kbd "S-SPC") 'scroll-down)
     (define-key map ">" 'end-of-buffer)
     (define-key map "<" 'beginning-of-buffer)
-    (define-key map "r" 'isearch-backward)
-    (define-key map "s" 'isearch-forward)
-    (define-key map "q" 'bibslurp-quit)
-    (define-key map "a" 'bibslurp-show-abstract)
     (define-key map "n" 'bibslurp-next-entry)
     (define-key map "p" 'bibslurp-previous-entry)
+    ;; Search
+    (define-key map "r" 'isearch-backward)
+    (define-key map "s" 'isearch-forward)
+    ;; Quit
+    (define-key map "q" 'bibslurp-quit)
+    ;; Retrieve useful stuff
+    (define-key map "e" 'bibslurp-visit-journal)
+    (define-key map "f" 'bibslurp-visit-article)
+    (define-key map "x" 'bibslurp-visit-arxiv)
+    (define-key map "d" 'bibslurp-visit-data)
+    (define-key map "S" 'bibslurp-visit-ned)
+    (define-key map "N" 'bibslurp-visit-ned)
     map)
   "Keymap for bibslurp mode.")
 
@@ -489,6 +498,69 @@ turn it into something human readable."
   (let ((pos (previous-single-property-change (point) 'number)))
     (if (integerp pos)
 	(goto-char pos))))
+
+;;; Retrieve useful stuff
+
+(defun bibslurp/visit-something (type &optional number)
+  "Visit link specified by TYPE.
+TYPE can be
+ * 'journal
+ * 'article
+ * 'arvix
+ * 'data
+ * 'simbad
+ * 'ned
+NUMBER is the entry number in `bibslurp-entry-list'.  If it is
+not provided, use the entry number at point, otherwise prompt the
+user for inserting it. "
+  (setq number
+	(or number
+	    current-prefix-arg
+	    (get-text-property (point) 'number)
+	    (read-string "Link number: ")))
+  (if (numberp number)
+      (setq number (number-to-string number)))
+  (browse-url
+   (format
+    "http://adsabs.harvard.edu/cgi-bin/nph-data_query?bibcode=%s&db_key=AST&link_type=%s"
+    (nth 2 (assoc-string number bibslurp-entry-list))
+    (cond ((equal type 'journal) "EJOURNAL")
+	  ((equal type 'article) "ARTICLE")
+	  ((equal type 'arxiv)   "PREPRINT")
+	  ((equal type 'data)    "DATA")
+	  ((equal type 'simbad)  "SIMBAD")
+	  ((equal type 'ned)     "NED")
+	  (t                     "")))))
+
+(defun bibslurp-visit-journal (&optional number)
+  "Visit journal page for entry NUMBER in `bibslurp-entry-list'."
+  (interactive)
+  (bibslurp/visit-something 'journal number))
+
+(defun bibslurp-visit-article (&optional number)
+  "Download article for entry NUMBER in `bibslurp-entry-list'."
+  (interactive)
+  (bibslurp/visit-something 'article number))
+
+(defun bibslurp-visit-arxiv (&optional number)
+  "Visit arXiv for entry NUMBER in `bibslurp-entry-list'."
+  (interactive)
+  (bibslurp/visit-something 'arxiv number))
+
+(defun bibslurp-visit-data (&optional number)
+  "Visit data for entry NUMBER in `bibslurp-entry-list'."
+  (interactive)
+  (bibslurp/visit-something 'data number))
+
+(defun bibslurp-visit-simbad (&optional number)
+  "Visit SIMBAD for entry NUMBER in `bibslurp-entry-list'."
+  (interactive)
+  (bibslurp/visit-something 'simbad number))
+
+(defun bibslurp-visit-ned (&optional number)
+  "Visit NED for entry NUMBER in `bibslurp-entry-list'."
+  (interactive)
+  (bibslurp/visit-something 'ned number))
 
 (provide 'bibslurp)
 

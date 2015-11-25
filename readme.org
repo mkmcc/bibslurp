@@ -79,5 +79,4 @@
 * TODO:
   1. clean up code
   2. check regexp robustness
-  3. add a feature to download pdfs. ??
 
