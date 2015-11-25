@@ -193,6 +193,9 @@ configuration."
 (defvar bibslurp-query-history nil
   "History for `bibslurp-query-ads'.")
 
+(defvar bibslurp-entry-list nil
+  "List of entries for the current search.")
+
 ;;;###autoload
 (defun bibslurp-query-ads (search-string)
   "Interactive function which asks for a search string and sends
@@ -204,13 +207,14 @@ abstract.  You can exit the mode at any time by hitting 'q'."
   (interactive (list (read-string "Search string: " nil 'bibslurp-query-history)))
   (let ((search-url (bibslurp/build-ads-url search-string))
         (buf (get-buffer-create "ADS Search Results"))
-        (inhibit-read-only t)
-        (clean-list))
+        (inhibit-read-only t))
     (with-temp-buffer
       (url-insert-file-contents search-url)
-      (setq clean-list (-map 'bibslurp/clean-entry (bibslurp/read-table)))
+      (setq bibslurp-entry-list
+	    (-map 'bibslurp/clean-entry (bibslurp/read-table)))
       (setq bibslurp/link-list '())
-      (--map (add-to-list 'bibslurp/link-list (car (last it)) t) clean-list))
+      (--map (add-to-list 'bibslurp/link-list (car (last it)) t)
+	     bibslurp-entry-list))
     (with-current-buffer buf
       (erase-buffer)
       (insert "ADS Search Results for \""
@@ -231,7 +235,7 @@ abstract.  You can exit the mode at any time by hitting 'q'."
         (insert
          (mapconcat 'identity
 		    (--map (apply 'bibslurp/print-entry it)
-			   clean-list) ""))
+			   bibslurp-entry-list) ""))
 	;; Shave off the last newlines
 	(delete-char -4))
       (bibslurp-mode))
