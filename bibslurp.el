@@ -352,7 +352,7 @@ with the argument NEW-LABEL."
           (concat (match-string-no-properties 0)
                   (buffer-substring bpoint (point))))))))
 
-(defun bibslurp-slurp-bibtex (link-number)
+(defun bibslurp-slurp-bibtex (&optional link-number)
   "Automatically find the bibtex entry for an abstract in the
 NASA ADS database.
 
@@ -364,17 +364,21 @@ the bibtex entry and save it to the kill ring.
 
 The functions `bibslurp/absurl-to-bibdata' and `bibslurp/biburl-to-bib' are
 more general."
-  (interactive (list (or current-prefix-arg
-                         (read-string "Link number: "))))
-  (let* ((abs-url (bibslurp/follow-link link-number))
-         (bib-data (bibslurp/absurl-to-bibdata abs-url)))
+  (interactive)
+  (setq link-number
+	(or link-number
+	    current-prefix-arg
+	    (get-text-property (point) 'number)
+	    (read-string "Link number: ")))
+  (let ((bib-data (bibslurp/absurl-to-bibdata
+		   (bibslurp/follow-link link-number))))
     (cond
      ((eq bib-data nil)
       (message "Couldn't find link to bibtex entry."))
      (t
       (let ((bib-url (car bib-data))
-            (new-label (cadr bib-data)))
-        (kill-new (bibslurp/biburl-to-bib bib-url new-label)))
+	    (new-label (cadr bib-data)))
+	(kill-new (bibslurp/biburl-to-bib bib-url new-label)))
       (message "Saved bibtex entry to kill-ring.")))))
 
 (defun bibslurp/suggest-label ()
@@ -442,10 +446,14 @@ turn it into something human readable."
           (local-set-key (kbd "q") 'kill-buffer))
         (switch-to-buffer buf)))))
 
-(defun bibslurp-show-abstract (link-number)
+(defun bibslurp-show-abstract (&optional link-number)
   "Display the abstract page for a specified link number."
-  (interactive (list (or current-prefix-arg
-                         (read-string "Link number: "))))
+  (interactive)
+  (setq link-number
+	(or link-number
+	    current-prefix-arg
+	    (get-text-property (point) 'number)
+	    (read-string "Link number: ")))
   (let* ((abs-url (bibslurp/follow-link link-number)))
     (when abs-url
       (with-temp-buffer
