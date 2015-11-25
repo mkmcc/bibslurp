@@ -89,29 +89,39 @@
 (require 's)
 (require 'dash)
 
-
+(defgroup bibslurp nil
+  "retrieve BibTeX entries from NASA ADS."
+  :prefix "bibslurp-"
+  :group 'convenience
+  :tag "bibslurp"
+  :link '(url-link :tag "Home Page"
+		   "https://mkmcc.github.io/software/bibslurp.html"))
 
 ;;; start by making a rudimentary web browser
 ;; define font-lock faces
-(make-face 'bibslurp-number-face)
-(make-face 'bibslurp-name-face)
-(make-face 'bibslurp-score-face)
-(make-face 'bibslurp-date-face)
-(make-face 'bibslurp-author-face)
-(make-face 'bibslurp-title-face)
+(defface bibslurp-number-face
+  '((t (:inherit 'font-lock-string-face)))
+  "Face for entry number.")
 
-(set-face-attribute 'bibslurp-number-face nil
-                    :inherit 'font-lock-string-face)
-(set-face-attribute 'bibslurp-score-face nil
-                    :inherit 'font-lock-comment-face)
-(set-face-attribute 'bibslurp-author-face nil
-                    :inherit 'font-lock-builtin-face)
-(set-face-attribute 'bibslurp-title-face nil
-                    :inherit 'font-lock-string-face)
-(set-face-attribute 'bibslurp-name-face nil
-                    :slant 'italic)
-(set-face-attribute 'bibslurp-date-face nil
-                    :inherit 'font-lock-variable-name-face)
+(defface bibslurp-name-face
+  '((t (:inherit 'italic)))
+  "Face for entry name.")
+
+(defface bibslurp-score-face
+  '((t (:inherit 'font-lock-comment-face)))
+  "Face for entry score.")
+
+(defface bibslurp-date-face
+  '((t (:inherit 'font-lock-variable-name-face)))
+  "Face for entry date.")
+
+(defface bibslurp-author-face
+  '((t (:inherit 'font-lock-builtin-face)))
+  "Face for entry authors")
+
+(defface bibslurp-title-face
+  '((t (:inherit 'font-lock-string-face)))
+  "Face for entry title.")
 
 ;; key bindings
 (defvar bibslurp-mode-map
