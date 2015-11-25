@@ -127,6 +127,8 @@
     (define-key map "s" 'isearch-forward)
     (define-key map "q" 'bibslurp-quit)
     (define-key map "a" 'bibslurp-show-abstract)
+    (define-key map "n" 'bibslurp-next-entry)
+    (define-key map "p" 'bibslurp-previous-entry)
     map)
   "Keymap for bibslurp mode.")
 
@@ -218,8 +220,10 @@ abstract.  You can exit the mode at any time by hitting 'q'."
       (save-excursion
         (insert
          (mapconcat 'identity
-                    (--map (apply 'bibslurp/print-entry it) clean-list)
-                    "\n\n\n\n")))
+		    (--map (apply 'bibslurp/print-entry it)
+			   clean-list) ""))
+	;; Shave off the last newlines
+	(delete-char -4))
       (bibslurp-mode))
     (window-configuration-to-register :bibslurp-window)
     (switch-to-buffer buf)
@@ -289,14 +293,15 @@ TODO: this is really messy code.  cleanup."
          (fmt-score (propertize (format "(%s)" score) 'face 'bibslurp-score-face))
          (pad (make-string (- 80 (length fmt-num) (length fmt-score)) ? ))
          (meta (concat fmt-num pad fmt-score)))
-    (concat meta "\n"
-            (s-truncate 80
-                        (concat (make-string 8 ? )
-                                (propertize (s-right 4 date) 'face 'bibslurp-date-face) " "
-                                (propertize authors 'face 'bibslurp-author-face)))
-            "\n\n"
-            (when title (s-word-wrap 80 title)))))
-
+    (propertize
+     (concat meta "\n"
+	     (s-truncate 80
+			 (concat (make-string 8 ? )
+				 (propertize (s-right 4 date) 'face 'bibslurp-date-face) " "
+				 (propertize authors 'face 'bibslurp-author-face)))
+	     "\n\n"
+	     (when title (s-word-wrap 80 title))
+	     "\n\n\n\n") 'number num)))
 
 ;; functions to find and retrieve bibtex entries
 (defun bibslurp/absurl-to-bibdata (abs-url)
@@ -347,7 +352,7 @@ with the argument NEW-LABEL."
           (concat (match-string-no-properties 0)
                   (buffer-substring bpoint (point))))))))
 
-(defun bibslurp-slurp-bibtex (link-number)
+(defun bibslurp-slurp-bibtex (&optional link-number)
   "Automatically find the bibtex entry for an abstract in the
 NASA ADS database.
 
@@ -359,17 +364,21 @@ the bibtex entry and save it to the kill ring.
 
 The functions `bibslurp/absurl-to-bibdata' and `bibslurp/biburl-to-bib' are
 more general."
-  (interactive (list (or current-prefix-arg
-                         (read-string "Link number: "))))
-  (let* ((abs-url (bibslurp/follow-link link-number))
-         (bib-data (bibslurp/absurl-to-bibdata abs-url)))
+  (interactive)
+  (setq link-number
+	(or link-number
+	    current-prefix-arg
+	    (get-text-property (point) 'number)
+	    (read-string "Link number: ")))
+  (let ((bib-data (bibslurp/absurl-to-bibdata
+		   (bibslurp/follow-link link-number))))
     (cond
      ((eq bib-data nil)
       (message "Couldn't find link to bibtex entry."))
      (t
       (let ((bib-url (car bib-data))
-            (new-label (cadr bib-data)))
-        (kill-new (bibslurp/biburl-to-bib bib-url new-label)))
+	    (new-label (cadr bib-data)))
+	(kill-new (bibslurp/biburl-to-bib bib-url new-label)))
       (message "Saved bibtex entry to kill-ring.")))))
 
 (defun bibslurp/suggest-label ()
@@ -437,15 +446,35 @@ turn it into something human readable."
           (local-set-key (kbd "q") 'kill-buffer))
         (switch-to-buffer buf)))))
 
-(defun bibslurp-show-abstract (link-number)
+(defun bibslurp-show-abstract (&optional link-number)
   "Display the abstract page for a specified link number."
-  (interactive (list (or current-prefix-arg
-                         (read-string "Link number: "))))
+  (interactive)
+  (setq link-number
+	(or link-number
+	    current-prefix-arg
+	    (get-text-property (point) 'number)
+	    (read-string "Link number: ")))
   (let* ((abs-url (bibslurp/follow-link link-number)))
     (when abs-url
       (with-temp-buffer
         (url-insert-file-contents (bibslurp/follow-link link-number))
         (bibslurp/format-abs)))))
+
+;;; Navigation
+
+(defun bibslurp-next-entry ()
+  "Move to the next entry."
+  (interactive)
+  (let ((pos (next-single-property-change (point) 'number)))
+    (if (integerp pos)
+	(goto-char pos))))
+
+(defun bibslurp-previous-entry ()
+  "Move to the previous entry."
+  (interactive)
+  (let ((pos (previous-single-property-change (point) 'number)))
+    (if (integerp pos)
+	(goto-char pos))))
 
 (provide 'bibslurp)
 
