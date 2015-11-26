@@ -432,14 +432,17 @@ empty string if no suggestion is found."
   (save-excursion
     (goto-char (point-min))
     (let ((author-regexp
-           "<meta\\s-+name=\"citation_authors\"\\s-+content=\"\\(\\sw+\\)")
+           "<meta\\s-+name=\"citation_authors\"\\s-+content=\"\\([[:alnum:] -]+\\)")
           (date-regexp
-           "<meta\\s-+name=\"citation_date\"\\s-+content=\"\\([0-9/-]+\\)"))
+           "<meta\\s-+name=\"citation_date\"\\s-+content=\"\\([0-9/-]+\\)")
+	  author date)
       (when (re-search-forward author-regexp nil t)
-        (let ((author (match-string-no-properties 1)))
-          (when (re-search-forward date-regexp nil t)
-            (let ((date (match-string-no-properties 1)))
-              (concat author (s-right 4 date)))))))))
+	;; Replace spaces with hyphens in author name.
+        (setq author (replace-regexp-in-string " " "-"
+					       (match-string-no-properties 1)))
+	(when (re-search-forward date-regexp nil t)
+	  (setq date (match-string-no-properties 1))
+	  (concat author (s-right 4 date)))))))
 
 
 
