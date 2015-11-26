@@ -71,7 +71,7 @@
 
 ;; (require 'package)
 ;; (add-to-list 'package-archives
-;;              '("melpa" . "http://melpa.milkbox.net/packages/") t)
+;;              '("melpa" . "https://melpa.org/packages/") t)
 
 ;; Alternatively, you can just save this file and do the standard
 ;; (add-to-list 'load-path "/path/to/bibslurp.el")
