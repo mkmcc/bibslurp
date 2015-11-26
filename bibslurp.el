@@ -362,18 +362,32 @@ function simply returns nil."
                 (new-label (bibslurp/suggest-label)))
             (list bib-url new-label)))))))
 
+(defcustom bibslurp-bibtex-label-format 'author-year
+  "Format of the label of the BibTeX entry provided.
+It can be either
+ * 'author-year
+ * 'bibcode"
+  :group 'bibslurp
+  :type '(choice (const :tag "AuthorYear" author-year)
+		 (const :tag "Bibcode"    bibcode)))
+
 (defun bibslurp/biburl-to-bib (bib-url &optional new-label)
   "Take the URL for an ADS bibtex entry and return the entry as a
-string.  Optionally, replace the default (and useless) ADS label
-with the argument NEW-LABEL."
+string.  The format of the label is controlled by
+`bibslurp-bibtex-label-format'."
   (let ((buf (url-retrieve-synchronously bib-url)))
     (with-current-buffer buf
       (goto-char (point-min))
       ;; first, look for a bibtex definition and replace the label if
       ;; appropriate.
       (when (re-search-forward "@\\sw+{\\([^,]+\\)," nil t)
-        (when (and new-label (not (string-equal new-label "")))
-          (replace-match new-label t t nil 1))
+	;; If `bibslurp-bibtex-label-format' is set to `author-year', replace
+	;; the label with the one returned by `bibslurp/suggest-label',
+	;; otherwise use the Bibcode as label.
+	(and
+	 (equal bibslurp-bibtex-label-format 'author-year)
+	 new-label (not (string-equal new-label ""))
+	 (replace-match new-label t t nil 1))
         ;; next, find the definition and return it.  use the nifty
         ;; function `forward-sexp' to navigate to the end.
         (goto-char (point-min))
