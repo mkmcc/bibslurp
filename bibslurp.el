@@ -302,6 +302,12 @@ that's the case..."
     (when (string-match "<a href=\"\\([^\"]+?\\)\">\\([^<]+\\)</a>" link-data)
       (let ((abs-url (match-string-no-properties 1 link-data))
             (abs-name (match-string-no-properties 2 link-data)))
+	;; Decode HTML entities.  XXX: the only entity I know it is used in
+	;; bibcodes is "&amp;".  Should we need to decode much more entitites
+	;; there is `xml-parse-string', but we would require xml library then.
+	;; XXX: probably would be even better not to get the bibcode from HTML
+	;; at all, if possible.
+	(setq abs-name (replace-regexp-in-string "&amp;" "&" abs-name))
         (list num score abs-name date authors title abs-url)))))
 
 (defun bibslurp/print-entry (num score abs-name date authors title abs-url)
