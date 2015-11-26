@@ -160,19 +160,17 @@ only enter the mode via `bibslurp-query-ads'.
   (use-local-map bibslurp-mode-map))
 
 (defun bibslurp/follow-link (number)
-  "take a link number and return the corresponding url as a
-string.
+  "Return the URL corresponding to the abstract NUMBER.
 
-argument may be either an integer or a string.  returns nil if
-the link number is invalid.  links are stored in the list
-`bibslurp/link-list', which is populated by `bibslurp-query-ads'
+Argument may be either an integer or a string.  Return nil if the
+link number is invalid.  Links are stored in the list
+`bibslurp-entry-list', which is populated by `bibslurp-query-ads'
 once the search results are returned."
-  (interactive "P")
-  (let* ((link-number
-          (if (stringp number)
-              (string-to-number number)
-            number)))
-    (nth (- link-number 1) bibslurp/link-list)))
+  (setq number
+	(if (integerp number)
+	    (number-to-string number)
+	  number))
+  (nth 6 (assoc-string number bibslurp-entry-list)))
 
 (defun bibslurp-quit ()
   "Close the bibslurp buffer and restore the previous window
@@ -196,14 +194,21 @@ configuration."
 
 
 ;; functions to parse and display the search results page.
-(defvar bibslurp/link-list nil
-  "list of abstract URLs for the current search.")
-
 (defvar bibslurp-query-history nil
   "History for `bibslurp-query-ads'.")
 
 (defvar bibslurp-entry-list nil
-  "List of entries for the current search.")
+  "List of entries for the current search.
+
+For each entry, the elements are:
+ * 0: number of the entry, starting from 1
+ * 1: score
+ * 2: bibcode
+ * 3: date
+ * 4: authors
+ * 5: title
+ * 6: URL of the abstract
+All elements are string.")
 
 ;;;###autoload
 (defun bibslurp-query-ads (search-string)
@@ -220,10 +225,7 @@ abstract.  You can exit the mode at any time by hitting 'q'."
     (with-temp-buffer
       (url-insert-file-contents search-url)
       (setq bibslurp-entry-list
-	    (-map 'bibslurp/clean-entry (bibslurp/read-table)))
-      (setq bibslurp/link-list '())
-      (--map (add-to-list 'bibslurp/link-list (car (last it)) t)
-	     bibslurp-entry-list))
+	    (-map 'bibslurp/clean-entry (bibslurp/read-table))))
     (with-current-buffer buf
       (erase-buffer)
       (insert "ADS Search Results for \""
