@@ -599,23 +599,27 @@ user for inserting it. "
 ;;; Advanced search
 
 (defvar-local bibslurp/advanced-search-authors nil)
+(defvar-local bibslurp/advanced-search-author-logic nil)
 (defvar-local bibslurp/advanced-search-start-mon nil)
 (defvar-local bibslurp/advanced-search-start-year nil)
 (defvar-local bibslurp/advanced-search-end-mon nil)
 (defvar-local bibslurp/advanced-search-end-year nil)
+(defvar-local bibslurp/advanced-search-object-logic nil)
 (defvar-local bibslurp/advanced-search-object nil)
 (defvar-local bibslurp/advanced-search-sim nil)
 (defvar-local bibslurp/advanced-search-ned nil)
 (defvar-local bibslurp/advanced-search-adsobj nil)
 
 (defun bibslurp/advanced-search-build-url
-    (authors start-mon start-year end-mon end-year object sim ned adsobj &rest _ignore)
+    (authors author-logic start-mon start-year end-mon end-year object
+	     object-logic sim ned adsobj &rest _ignore)
   "Return the ADS search url for the advanced search."
   (let ((base-url "http://adsabs.harvard.edu/cgi-bin/nph-abs_connect?db_key=AST&db_key=PHY&db_key=PRE&qform=AST&arxiv_sel=astro-ph&arxiv_sel=cond-mat&arxiv_sel=cs&arxiv_sel=gr-qc&arxiv_sel=hep-ex&arxiv_sel=hep-lat&arxiv_sel=hep-ph&arxiv_sel=hep-th&arxiv_sel=math&arxiv_sel=math-ph&arxiv_sel=nlin&arxiv_sel=nucl-ex&arxiv_sel=nucl-th&arxiv_sel=physics&arxiv_sel=quant-ph&arxiv_sel=q-bio")
 	(sim-url    (if sim    "&sim_query=YES"    "&sim_query=NO"))
 	(ned-url    (if ned    "&ned_query=YES"    "&ned_query=NO"))
 	(adsobj-url (if adsobj "&adsobj_query=YES" "&adsobj_query=NO"))
-	(intermezzo1 "&aut_logic=OR&obj_logic=OR")
+	(aut-logic-url (concat "&aut_logic=" author-logic))
+	(obj-logic-url (concat "&obj_logic=" object-logic))
 	(authors-url
 	 (concat "&author=" (replace-regexp-in-string " " "+" authors)))
 	(object-url
@@ -625,9 +629,9 @@ user for inserting it. "
 	(end-mon-url  (concat "&end_mon=" end-mon))
 	(end-year-url (concat "&end_year=" end-year))
 	(end-url "&ttl_logic=OR&title=&txt_logic=OR&text=&nr_to_return=200&start_nr=1&jou_pick=ALL&ref_stems=&data_and=ALL&group_and=ALL&start_entry_day=&start_entry_mon=&start_entry_year=&end_entry_day=&end_entry_mon=&end_entry_year=&min_score=&sort=SCORE&data_type=SHORT&aut_syn=YES&ttl_syn=YES&txt_syn=YES&aut_wt=1.0&obj_wt=1.0&ttl_wt=0.3&txt_wt=3.0&aut_wgt=YES&obj_wgt=YES&ttl_wgt=YES&txt_wgt=YES&ttl_sco=YES&txt_sco=YES&version=1"))
-    (concat base-url sim-url ned-url adsobj-url intermezzo1 authors-url
-	    object-url start-mon-url start-year-url end-mon-url end-year-url
-	    end-url)))
+    (concat base-url sim-url ned-url adsobj-url aut-logic-url obj-logic-url
+	    authors-url object-url start-mon-url start-year-url end-mon-url
+	    end-year-url end-url)))
 
 (defun bibslurp/advanced-search-send-query (&rest _ignore)
   "Send the query for the advanced search."
@@ -635,11 +639,13 @@ user for inserting it. "
   (bibslurp/search-results
    (bibslurp/advanced-search-build-url
     (widget-value bibslurp/advanced-search-authors)
+    (widget-value bibslurp/advanced-search-author-logic)
     (widget-value bibslurp/advanced-search-start-mon)
     (widget-value bibslurp/advanced-search-start-year)
     (widget-value bibslurp/advanced-search-end-mon)
     (widget-value bibslurp/advanced-search-end-year)
     (widget-value bibslurp/advanced-search-object)
+    (widget-value bibslurp/advanced-search-object-logic)
     (widget-value bibslurp/advanced-search-sim)
     (widget-value bibslurp/advanced-search-ned)
     (widget-value bibslurp/advanced-search-adsobj)))
@@ -654,6 +660,12 @@ user for inserting it. "
   (let ((inhibit-read-only t))
     (erase-buffer))
   (remove-overlays)
+
+  ;; Welcome!
+  (widget-insert
+   (propertize "SAO/NASA ADS Custom query\n\n" 'font-lock-face '(:weight bold)))
+  (widget-insert
+   "Press C-c C-c to send the query, TAB to move to another field.\n\n\n")
 
   ;; Prepare keymaps
   (let ((field-keymap (make-sparse-keymap))
@@ -670,10 +682,19 @@ user for inserting it. "
 	  (widget-create 'editable-field
 			 :size 13
 			 :keymap field-keymap
+			 :action 'newline
 			 :format
 			 (concat (propertize "Authors"
 					     'font-lock-face '(:weight bold))
 				 ": (Last, First M, one per line) %v")))
+
+    ;; Authors logic
+    (widget-insert "\nCombine authors with logic\n")
+    (setq bibslurp/advanced-search-author-logic
+	  (widget-create 'radio-button-choice
+			 :value "OR"
+			 '(item "OR") '(item "AND")
+			 '(item :tag "simple logic" "SIMPLE")))
 
     ;; Publication date
     (widget-insert "\n\n")
@@ -711,8 +732,9 @@ user for inserting it. "
 	  (widget-create 'editable-field
 			 :size 13
 			 :keymap field-keymap
+			 :action 'newline
 			 :format
-			 (concat "\n\n"
+			 (concat "\n\n\n"
 				 (propertize "Object name/position search"
 					     'font-lock-face '(:weight bold))
 				 ": %v")))
@@ -722,9 +744,17 @@ user for inserting it. "
     (setq bibslurp/advanced-search-ned (widget-create 'checkbox t))
     (widget-insert " NED ")
     (setq bibslurp/advanced-search-adsobj (widget-create 'checkbox t))
-    (widget-insert " ADS objects\n\n")
+    (widget-insert " ADS objects\n")
+
+    ;; Objects logic
+    (widget-insert "Combine objects with logic\n")
+    (setq bibslurp/advanced-search-object-logic
+	  (widget-create 'radio-button-choice
+			 :value "OR"
+			 '(item "OR") '(item "AND")))
 
     ;; Buttons
+    (widget-insert "\n\n")
     (widget-create 'push-button
 		   :notify (lambda (&rest _ignore)
 			     (bibslurp/advanced-search-send-query))
