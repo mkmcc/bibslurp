@@ -252,7 +252,6 @@ the mode at any time by hitting 'q'."
 	;; Shave off the last newlines
 	(delete-char -4))
       (bibslurp-mode))
-    (window-configuration-to-register :bibslurp-window)
     (switch-to-buffer buf)
     (setq buffer-read-only t)
     (set-buffer-modified-p nil)
@@ -262,6 +261,7 @@ the mode at any time by hitting 'q'."
 (defun bibslurp-query-ads (search-string)
   "Ask for a search string and sends the query to NASA ADS."
   (interactive (list (read-string "Search string: " nil 'bibslurp-query-history)))
+  (window-configuration-to-register :bibslurp-window)
   (bibslurp/search-results (bibslurp/build-ads-url search-string)
 			   search-string))
 
@@ -648,6 +648,7 @@ user for inserting it. "
 (defun bibslurp/advanced-search-widget ()
   "Create the widgets for the ADS advanced search."
   (interactive)
+  (window-configuration-to-register :bibslurp-window)
   (switch-to-buffer "*ADS advanced search*")
   (kill-all-local-variables)
   (let ((inhibit-read-only t))
