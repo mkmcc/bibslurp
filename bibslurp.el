@@ -598,6 +598,9 @@ user for inserting it. "
 
 ;;; Advanced search
 
+(defvar-local bibslurp/advanced-search-ast nil)
+(defvar-local bibslurp/advanced-search-phy nil)
+(defvar-local bibslurp/advanced-search-pre nil)
 (defvar-local bibslurp/advanced-search-authors nil)
 (defvar-local bibslurp/advanced-search-author-logic nil)
 (defvar-local bibslurp/advanced-search-start-mon nil)
@@ -609,12 +612,20 @@ user for inserting it. "
 (defvar-local bibslurp/advanced-search-sim nil)
 (defvar-local bibslurp/advanced-search-ned nil)
 (defvar-local bibslurp/advanced-search-adsobj nil)
+(defvar-local bibslurp/advanced-search-title nil)
+(defvar-local bibslurp/advanced-search-title-logic nil)
+(defvar-local bibslurp/advanced-search-abstract nil)
+(defvar-local bibslurp/advanced-search-abstract-logic nil)
 
 (defun bibslurp/advanced-search-build-url
-    (authors author-logic start-mon start-year end-mon end-year object
-	     object-logic sim ned adsobj &rest _ignore)
+    (ast phy pre authors author-logic start-mon start-year end-mon end-year
+	 object object-logic sim ned adsobj title title-logic abstract
+	 abstract-logic &rest _ignore)
   "Return the ADS search url for the advanced search."
-  (let ((base-url "http://adsabs.harvard.edu/cgi-bin/nph-abs_connect?db_key=AST&db_key=PHY&db_key=PRE&qform=AST&arxiv_sel=astro-ph&arxiv_sel=cond-mat&arxiv_sel=cs&arxiv_sel=gr-qc&arxiv_sel=hep-ex&arxiv_sel=hep-lat&arxiv_sel=hep-ph&arxiv_sel=hep-th&arxiv_sel=math&arxiv_sel=math-ph&arxiv_sel=nlin&arxiv_sel=nucl-ex&arxiv_sel=nucl-th&arxiv_sel=physics&arxiv_sel=quant-ph&arxiv_sel=q-bio")
+  (let ((base-url "http://adsabs.harvard.edu/cgi-bin/nph-abs_connect?&qform=AST&arxiv_sel=astro-ph&arxiv_sel=cond-mat&arxiv_sel=cs&arxiv_sel=gr-qc&arxiv_sel=hep-ex&arxiv_sel=hep-lat&arxiv_sel=hep-ph&arxiv_sel=hep-th&arxiv_sel=math&arxiv_sel=math-ph&arxiv_sel=nlin&arxiv_sel=nucl-ex&arxiv_sel=nucl-th&arxiv_sel=physics&arxiv_sel=quant-ph&arxiv_sel=q-bio")
+	(ast-url (if ast "&db_key=AST"))
+	(phy-url (if phy "&db_key=PHY"))
+	(pre-url (if pre "&db_key=PRE"))
 	(sim-url    (if sim    "&sim_query=YES"    "&sim_query=NO"))
 	(ned-url    (if ned    "&ned_query=YES"    "&ned_query=NO"))
 	(adsobj-url (if adsobj "&adsobj_query=YES" "&adsobj_query=NO"))
@@ -628,16 +639,26 @@ user for inserting it. "
 	(start-year-url (concat "&start_year=" start-year))
 	(end-mon-url  (concat "&end_mon=" end-mon))
 	(end-year-url (concat "&end_year=" end-year))
-	(end-url "&ttl_logic=OR&title=&txt_logic=OR&text=&nr_to_return=200&start_nr=1&jou_pick=ALL&ref_stems=&data_and=ALL&group_and=ALL&start_entry_day=&start_entry_mon=&start_entry_year=&end_entry_day=&end_entry_mon=&end_entry_year=&min_score=&sort=SCORE&data_type=SHORT&aut_syn=YES&ttl_syn=YES&txt_syn=YES&aut_wt=1.0&obj_wt=1.0&ttl_wt=0.3&txt_wt=3.0&aut_wgt=YES&obj_wgt=YES&ttl_wgt=YES&txt_wgt=YES&ttl_sco=YES&txt_sco=YES&version=1"))
-    (concat base-url sim-url ned-url adsobj-url aut-logic-url obj-logic-url
-	    authors-url object-url start-mon-url start-year-url end-mon-url
-	    end-year-url end-url)))
+	(ttl-logic-url (concat "&ttl_logic=" title-logic))
+	(title-url
+	 (concat "&title=" (replace-regexp-in-string " " "+" title)))
+	(txl-logic-url (concat "&txt_logic=" abstract-logic))
+	(text-url
+	 (concat "&text=" (replace-regexp-in-string " " "+" abstract)))
+	(end-url "&nr_to_return=200&start_nr=1&jou_pick=ALL&ref_stems=&data_and=ALL&group_and=ALL&start_entry_day=&start_entry_mon=&start_entry_year=&end_entry_day=&end_entry_mon=&end_entry_year=&min_score=&sort=SCORE&data_type=SHORT&aut_syn=YES&ttl_syn=YES&txt_syn=YES&aut_wt=1.0&obj_wt=1.0&ttl_wt=0.3&txt_wt=3.0&aut_wgt=YES&obj_wgt=YES&ttl_wgt=YES&txt_wgt=YES&ttl_sco=YES&txt_sco=YES&version=1"))
+    (concat base-url ast-url phy-url pre-url sim-url ned-url adsobj-url
+	    aut-logic-url obj-logic-url authors-url object-url start-mon-url
+	    start-year-url end-mon-url end-year-url ttl-logic-url title-url
+	    end-url)))
 
 (defun bibslurp/advanced-search-send-query (&rest _ignore)
   "Send the query for the advanced search."
   (interactive)
   (bibslurp/search-results
    (bibslurp/advanced-search-build-url
+    (widget-value bibslurp/advanced-search-ast)
+    (widget-value bibslurp/advanced-search-phy)
+    (widget-value bibslurp/advanced-search-pre)
     (widget-value bibslurp/advanced-search-authors)
     (widget-value bibslurp/advanced-search-author-logic)
     (widget-value bibslurp/advanced-search-start-mon)
@@ -648,7 +669,11 @@ user for inserting it. "
     (widget-value bibslurp/advanced-search-object-logic)
     (widget-value bibslurp/advanced-search-sim)
     (widget-value bibslurp/advanced-search-ned)
-    (widget-value bibslurp/advanced-search-adsobj)))
+    (widget-value bibslurp/advanced-search-adsobj)
+    (widget-value bibslurp/advanced-search-title)
+    (widget-value bibslurp/advanced-search-title-logic)
+    (widget-value bibslurp/advanced-search-abstract)
+    (widget-value bibslurp/advanced-search-abstract-logic)))
   (kill-buffer "*ADS advanced search*"))
 
 (defun bibslurp/advanced-search-widget ()
@@ -676,6 +701,15 @@ user for inserting it. "
 
     (set-keymap-parent keymap widget-keymap)
     (define-key keymap "\C-c\C-c" 'bibslurp/advanced-search-send-query)
+
+    ;; Databases
+    (widget-insert "Databases to query: ")
+    (setq bibslurp/advanced-search-ast (widget-create 'checkbox t))
+    (widget-insert " Astronomy ")
+    (setq bibslurp/advanced-search-phy (widget-create 'checkbox nil))
+    (widget-insert " Physics ")
+    (setq bibslurp/advanced-search-pre (widget-create 'checkbox t))
+    (widget-insert " arXiv e-prints\n\n")
 
     ;; Authors
     (setq bibslurp/advanced-search-authors
@@ -738,6 +772,7 @@ user for inserting it. "
 				 (propertize "Object name/position search"
 					     'font-lock-face '(:weight bold))
 				 ": %v")))
+    ;; Objects catalogs
     (widget-insert "\nSelect data catalogs:\n")
     (setq bibslurp/advanced-search-sim (widget-create 'checkbox t))
     (widget-insert " SIMBAD ")
@@ -745,13 +780,52 @@ user for inserting it. "
     (widget-insert " NED ")
     (setq bibslurp/advanced-search-adsobj (widget-create 'checkbox t))
     (widget-insert " ADS objects\n")
-
     ;; Objects logic
     (widget-insert "Combine objects with logic\n")
     (setq bibslurp/advanced-search-object-logic
 	  (widget-create 'radio-button-choice
 			 :value "OR"
 			 '(item "OR") '(item "AND")))
+
+    ;; Title
+    (setq bibslurp/advanced-search-title
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'newline
+			 :format
+			 (concat "\n\n"
+				 (propertize "Enter Title Words"
+					     'font-lock-face '(:weight bold))
+				 ": %v")))
+    ;; Title logic
+    (widget-insert "\nCombine with logic\n")
+    (setq bibslurp/advanced-search-title-logic
+	  (widget-create 'radio-button-choice
+			 :value "OR"
+			 '(item "OR") '(item "AND")
+			 '(item :tag "simple logic" "SIMPLE")
+			 '(item :tag "boolean logic" "BOOL")))
+
+    ;; Abstract
+    (setq bibslurp/advanced-search-abstract
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'newline
+			 :format
+			 (concat "\n\n"
+				 (propertize "Enter Abstract Words/Keywords"
+					     'font-lock-face '(:weight bold))
+				 ": %v")))
+    ;; Abstract logic
+    (widget-insert "\nCombine with logic\n")
+    (setq bibslurp/advanced-search-abstract-logic
+	  (widget-create 'radio-button-choice
+			 :value "OR"
+			 '(item "OR") '(item "AND")
+			 '(item :tag "simple logic" "SIMPLE")
+			 '(item :tag "boolean logic" "BOOL")))
 
     ;; Buttons
     (widget-insert "\n\n")
@@ -769,8 +843,8 @@ user for inserting it. "
     (use-local-map keymap)
     (widget-setup)
 
-    ;; Move to the first widget
-    (widget-forward 1)))
+    ;; Move to the author widget
+    (widget-forward 4)))
 
 (provide 'bibslurp)
 
