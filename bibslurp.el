@@ -176,10 +176,9 @@ once the search results are returned."
   "Close the bibslurp buffer and restore the previous window
 configuration."
   (interactive)
-  (when (eq major-mode 'bibslurp-mode)
-    (kill-buffer)
-    (when (get-register :bibslurp-window)
-      (jump-to-register :bibslurp-window))))
+  (kill-buffer)
+  (when (get-register :bibslurp-window)
+    (jump-to-register :bibslurp-window)))
 
 (defun bibslurp/build-ads-url (search-string)
   "Helper function which turns a search string (e.g. \"^Quataert
@@ -701,6 +700,7 @@ user for inserting it. "
 
     (set-keymap-parent keymap widget-keymap)
     (define-key keymap "\C-c\C-c" 'bibslurp/advanced-search-send-query)
+    (define-key keymap "q"        'bibslurp-quit)
 
     ;; Databases
     (widget-insert "Databases to query: ")
