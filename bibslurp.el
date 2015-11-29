@@ -210,17 +210,16 @@ For each entry, the elements are:
  * 6: URL of the abstract
 All elements are string.")
 
-;;;###autoload
-(defun bibslurp-query-ads (search-string)
-  "Interactive function which asks for a search string and sends
-the query to NASA ADS.  Displays results in a new buffer called
-\"ADS Search Results\" and enters `bibslurp-mode'.  You can
-retrieve a bibtex entry by typing the number in front of the
-abstract link and hitting enter.  Hit 'a' instead to pull up the
-abstract.  You can exit the mode at any time by hitting 'q'."
-  (interactive (list (read-string "Search string: " nil 'bibslurp-query-history)))
-  (let ((search-url (bibslurp/build-ads-url search-string))
-        (buf (get-buffer-create "ADS Search Results"))
+(defun bibslurp/search-results (search-url &optional search-string)
+  "Create the buffer for the results of a search.
+
+Displays results in a new buffer called \"ADS Search Results\"
+and enters `bibslurp-mode'.  You can retrieve a bibtex entry by
+typing the number in front of the abstract link and hitting
+enter.  Hit 'a' instead to pull up the abstract.  You can exit
+the mode at any time by hitting 'q'."
+  (message search-url)
+  (let ((buf (get-buffer-create "ADS Search Results"))
         (inhibit-read-only t))
     (with-temp-buffer
       (url-insert-file-contents search-url)
@@ -228,9 +227,13 @@ abstract.  You can exit the mode at any time by hitting 'q'."
 	    (-map 'bibslurp/clean-entry (bibslurp/read-table))))
     (with-current-buffer buf
       (erase-buffer)
-      (insert "ADS Search Results for \""
-              (propertize search-string 'face 'font-lock-string-face)
-              "\"\n\n")
+      (insert "ADS Search Results for "
+	      ;; `search-string' is nil when we use advanced search.
+              (if search-string
+		  (concat "\"" (propertize search-string
+					   'face 'font-lock-string-face) "\"")
+		"advanced search")
+              "\n\n")
       (insert
        (propertize
         (concat
@@ -255,6 +258,13 @@ abstract.  You can exit the mode at any time by hitting 'q'."
     (setq buffer-read-only t)
     (set-buffer-modified-p nil)
     (delete-other-windows)))
+
+;;;###autoload
+(defun bibslurp-query-ads (search-string)
+  "Ask for a search string and sends the query to NASA ADS."
+  (interactive (list (read-string "Search string: " nil 'bibslurp-query-history)))
+  (bibslurp/search-results (bibslurp/build-ads-url search-string)
+			   search-string))
 
 (defun bibslurp/read-table ()
   "Parse the HTML from a search results page.
