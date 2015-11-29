@@ -41,13 +41,51 @@
 ;;; Example usage:
 
 ;; add an entry to a bibtex buffer:
-;;   M-x bibslurp-query-ads RET ^Quataert 2008
-;;   1 RET
+;;   M-x bibslurp-query-ads RET ^Quataert 2008 RET
+;; Move to the abstract you want to cite with n and p keys, or search
+;; in the buffer with s or r, and then press
+;;   RET
+;;   q
+;;   C-y
+
+;; If you want to select a different abstract, just type the
+;; corresponding number before pressing RET:
+;;   15 RET
 ;;   q
 ;;   C-y
 
 ;; For more examples and information see the project page at
 ;; http://astro.berkeley.edu/~mkmcc/software/bibslurp.html
+
+;;; Advanced search
+;; You can turn to the ADS advanced search interface, akin to
+;; http://adsabs.harvard.edu/abstract_service.html, either by pressing
+;; C-c C-c after having issued `bibslurp-query-ads', or directly with
+;;   M-x `bibslurp-query-ads-advanced-search' RET
+;; Here you can fill the wanted search fields (authors, publication
+;; date, objects, title, abstract) and specify combination logics, and
+;; then send the query either with C-c C-c or by pressing the button
+;; "Send Query".  Use TAB to move through fields, and q outside an
+;; input field to quit the search interface.
+
+;;; Other features
+;; In the ADS search result buffer you can also visit some useful
+;; pages related to each entry:
+;;  - on-line data at other data centers, with d
+;;  - on-line version of the selected article, with e
+;;  - on-line articles in PDF or Postscript, with f
+;;  - lists of objects for the selected abstract in the NED database,
+;;    with N
+;;  - lists of objects for the selected abstract in the SIMBAD
+;;    database, with S
+;;  - on-line pre-print version of the article in the arXiv database,
+;;    with x
+;; For each of these commands, BibSlurp will use by default the
+;; abstract point is currenly on, but you can specify a different
+;; abstract by prefixing the command with a number.  For example,
+;;   7 x
+;; will fire up your browser to the arXiv version of the seventh
+;; abstract in the list.
 
 ;;; Notes about the implementation:
 
@@ -257,12 +295,40 @@ the mode at any time by hitting 'q'."
     (delete-other-windows)))
 
 ;;;###autoload
-(defun bibslurp-query-ads (search-string)
-  "Ask for a search string and sends the query to NASA ADS."
-  (interactive (list (read-string "Search string: " nil 'bibslurp-query-history)))
-  (window-configuration-to-register :bibslurp-window)
-  (bibslurp/search-results (bibslurp/build-ads-url search-string)
-			   search-string))
+(defun bibslurp-query-ads (&optional search-string)
+  "Ask for a search string and sends the query to NASA ADS.
+
+Press \"C-c C-c\" to turn to the advanced search interface."
+  (interactive)
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map minibuffer-local-map)
+    ;; Bind C-c C-c to abort reading from minibuffer.  This throws a `quit'
+    ;; signal that we can catch later.
+    (define-key map "\C-c\C-c"
+      (lambda ()
+	(interactive)
+	(abort-recursive-edit)))
+    (condition-case nil
+	(progn
+	  ;; Read the search string from minibuffer, if not provided as
+	  ;; argument.
+	  (unless search-string
+	    (setq search-string
+		  (read-from-minibuffer "Search string: " nil map nil
+					'bibslurp-query-history)))
+	  ;; Show search results for the given search string.
+	  (window-configuration-to-register :bibslurp-window)
+	  (bibslurp/search-results (bibslurp/build-ads-url search-string)
+				   search-string))
+      ;; We've received a `quit' signal.  If it has been thrown by C-c C-c,
+      ;; start the ADS advanced search, otherwise emit the standard error.
+      ;; XXX: actually `last-input-event' holds only the very last event (C-c,
+      ;; in this case), we must hope the user didn't bind other keys ending in
+      ;; C-c to a `quit' signal, but this isn't the case in the standard
+      ;; configuration.
+      (quit (if (equal last-input-event ?\C-c)
+		(bibslurp-query-ads-advanced-search)
+	      (error "Quit"))))))
 
 (defun bibslurp/read-table ()
   "Parse the HTML from a search results page.
@@ -675,8 +741,10 @@ user for inserting it. "
     (widget-value bibslurp/advanced-search-abstract-logic)))
   (kill-buffer "*ADS advanced search*"))
 
-(defun bibslurp/advanced-search-widget ()
-  "Create the widgets for the ADS advanced search."
+
+;;;###autoload
+(defun bibslurp-query-ads-advanced-search ()
+  "Query ADS using advanced search."
   (interactive)
   (window-configuration-to-register :bibslurp-window)
   (switch-to-buffer "*ADS advanced search*")
@@ -689,7 +757,8 @@ user for inserting it. "
   (widget-insert
    (propertize "SAO/NASA ADS Custom query\n\n" 'font-lock-face '(:weight bold)))
   (widget-insert
-   "Press C-c C-c to send the query, TAB to move to another field.\n\n\n")
+   "Press C-c C-c to send the query, TAB to move to another field,\
+ q to exit.\n\n\n")
 
   ;; Prepare keymaps
   (let ((field-keymap (make-sparse-keymap))
@@ -836,7 +905,7 @@ user for inserting it. "
     (widget-insert " ")
     (widget-create 'push-button
 		   :notify (lambda (&rest _ignore)
-			     (bibslurp/advanced-search-widget))
+			     (bibslurp-query-ads-advanced-search))
 		   "Clear")
 
     ;; Setup the widgets
