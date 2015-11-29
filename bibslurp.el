@@ -218,7 +218,6 @@ and enters `bibslurp-mode'.  You can retrieve a bibtex entry by
 typing the number in front of the abstract link and hitting
 enter.  Hit 'a' instead to pull up the abstract.  You can exit
 the mode at any time by hitting 'q'."
-  (message search-url)
   (let ((buf (get-buffer-create "ADS Search Results"))
         (inhibit-read-only t))
     (with-temp-buffer
@@ -630,7 +629,7 @@ user for inserting it. "
 	    object-url start-mon-url start-year-url end-mon-url end-year-url
 	    end-url)))
 
-(defun bibslurp/advanced-search-send-query ()
+(defun bibslurp/advanced-search-send-query (&rest _ignore)
   "Send the query for the advanced search."
   (interactive)
   (bibslurp/search-results
@@ -655,72 +654,92 @@ user for inserting it. "
     (erase-buffer))
   (remove-overlays)
 
-  ;; Authors
-  (setq bibslurp/advanced-search-authors
-	(widget-create 'editable-field
-		       :size 13
-		       :format
-		       (concat (propertize "Authors"
-					   'font-lock-face '(:weight bold))
-			       ": (Last, First M, one per line) %v")))
+  ;; Prepare keymaps
+  (let ((field-keymap (make-sparse-keymap))
+	(keymap (make-sparse-keymap)))
+    (set-keymap-parent field-keymap widget-field-keymap)
+    (define-key field-keymap "\C-c\C-c"
+      'bibslurp/advanced-search-send-query)
 
-  ;; Publication date
-  (widget-insert "\n\n")
-  (widget-insert (propertize "Publication date"
-			     'font-lock-face '(:weight bold)))
-  (widget-insert ":\nbetween ")
-  (setq bibslurp/advanced-search-start-mon
-	(widget-create 'editable-field
-		       :size 13
-		       :format "(MM) %v"))
-  (setq bibslurp/advanced-search-start-year
-	(widget-create 'editable-field
-		       :size 13
-		       :format " (YYYY) %v"))
-  (widget-insert "\n    and ")
-  (setq bibslurp/advanced-search-end-mon
-	(widget-create 'editable-field
-		       :size 13
-		       :format "(MM) %v"))
-  (setq bibslurp/advanced-search-end-year
-	(widget-create 'editable-field
-		       :size 13
-		       :format " (YYYY) %v"))
+    (set-keymap-parent keymap widget-keymap)
+    (define-key keymap "\C-c\C-c" 'bibslurp/advanced-search-send-query)
 
-  ;; Objects
-  (setq bibslurp/advanced-search-object
-	(widget-create 'editable-field
-		       :size 13
-		       :format
-		       (concat "\n\n"
-			       (propertize "Object name/position search"
-					   'font-lock-face '(:weight bold))
-			       ": %v")))
-  (widget-insert "\nSelect data catalogs:\n")
-  (setq bibslurp/advanced-search-sim (widget-create 'checkbox t))
-  (widget-insert " SIMBAD ")
-  (setq bibslurp/advanced-search-ned (widget-create 'checkbox t))
-  (widget-insert " NED ")
-  (setq bibslurp/advanced-search-adsobj (widget-create 'checkbox t))
-  (widget-insert " ADS objects\n\n")
+    ;; Authors
+    (setq bibslurp/advanced-search-authors
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :format
+			 (concat (propertize "Authors"
+					     'font-lock-face '(:weight bold))
+				 ": (Last, First M, one per line) %v")))
 
-  ;; Buttons
-  (widget-create 'push-button
-		 :notify (lambda (&rest _ignore)
-			   (bibslurp/advanced-search-send-query))
-		 "Send Query")
-  (widget-insert " ")
-  (widget-create 'push-button
-		 :notify (lambda (&rest _ignore)
-			   (bibslurp/advanced-search-widget))
-		 "Clear")
+    ;; Publication date
+    (widget-insert "\n\n")
+    (widget-insert (propertize "Publication date"
+			       'font-lock-face '(:weight bold)))
+    (widget-insert ":\nbetween ")
+    (setq bibslurp/advanced-search-start-mon
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'bibslurp/advanced-search-send-query
+			 :format "(MM) %v"))
+    (setq bibslurp/advanced-search-start-year
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'bibslurp/advanced-search-send-query
+			 :format " (YYYY) %v"))
+    (widget-insert "\n    and ")
+    (setq bibslurp/advanced-search-end-mon
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'bibslurp/advanced-search-send-query
+			 :format "(MM) %v"))
+    (setq bibslurp/advanced-search-end-year
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'bibslurp/advanced-search-send-query
+			 :format " (YYYY) %v"))
 
-  ;; Setup the widgets
-  (use-local-map widget-keymap)
-  (widget-setup)
+    ;; Objects
+    (setq bibslurp/advanced-search-object
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :format
+			 (concat "\n\n"
+				 (propertize "Object name/position search"
+					     'font-lock-face '(:weight bold))
+				 ": %v")))
+    (widget-insert "\nSelect data catalogs:\n")
+    (setq bibslurp/advanced-search-sim (widget-create 'checkbox t))
+    (widget-insert " SIMBAD ")
+    (setq bibslurp/advanced-search-ned (widget-create 'checkbox t))
+    (widget-insert " NED ")
+    (setq bibslurp/advanced-search-adsobj (widget-create 'checkbox t))
+    (widget-insert " ADS objects\n\n")
 
-  ;; Move to the first widget
-  (widget-forward 1))
+    ;; Buttons
+    (widget-create 'push-button
+		   :notify (lambda (&rest _ignore)
+			     (bibslurp/advanced-search-send-query))
+		   "Send Query")
+    (widget-insert " ")
+    (widget-create 'push-button
+		   :notify (lambda (&rest _ignore)
+			     (bibslurp/advanced-search-widget))
+		   "Clear")
+
+    ;; Setup the widgets
+    (use-local-map keymap)
+    (widget-setup)
+
+    ;; Move to the first widget
+    (widget-forward 1)))
 
 (provide 'bibslurp)
 
