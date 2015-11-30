@@ -125,6 +125,9 @@
 ;;; Code:
 (require 's)
 (require 'dash)
+(require 'widget)
+(eval-when-compile
+  (require 'wid-edit))
 
 (defgroup bibslurp nil
   "retrieve BibTeX entries from NASA ADS."
@@ -707,14 +710,14 @@ user for inserting it. "
 	(ttl-logic-url (concat "&ttl_logic=" title-logic))
 	(title-url
 	 (concat "&title=" (replace-regexp-in-string " " "+" title)))
-	(txl-logic-url (concat "&txt_logic=" abstract-logic))
+	(txt-logic-url (concat "&txt_logic=" abstract-logic))
 	(text-url
 	 (concat "&text=" (replace-regexp-in-string " " "+" abstract)))
 	(end-url "&nr_to_return=200&start_nr=1&jou_pick=ALL&ref_stems=&data_and=ALL&group_and=ALL&start_entry_day=&start_entry_mon=&start_entry_year=&end_entry_day=&end_entry_mon=&end_entry_year=&min_score=&sort=SCORE&data_type=SHORT&aut_syn=YES&ttl_syn=YES&txt_syn=YES&aut_wt=1.0&obj_wt=1.0&ttl_wt=0.3&txt_wt=3.0&aut_wgt=YES&obj_wgt=YES&ttl_wgt=YES&txt_wgt=YES&ttl_sco=YES&txt_sco=YES&version=1"))
     (concat base-url ast-url phy-url pre-url sim-url ned-url adsobj-url
 	    aut-logic-url obj-logic-url authors-url object-url start-mon-url
 	    start-year-url end-mon-url end-year-url ttl-logic-url title-url
-	    end-url)))
+	    txt-logic-url text-url end-url)))
 
 (defun bibslurp/advanced-search-send-query (&rest _ignore)
   "Send the query for the advanced search."
