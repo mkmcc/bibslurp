@@ -1,7 +1,6 @@
 #+TITLE: bibslurp.el --- retrieve BibTeX entries from NASA ADS
 
- Copyright (C) 2013 Mike McCourt
- license: [[https://gnu.org/licenses/gpl-3.0.txt][GPLv3]]
+=bibslurp= provides an easy way to find BibTeX entries from the NASA ADS server and put them into your local database.
 
 * Example usage:
   1. add an entry to a bibtex buffer:
@@ -100,7 +99,15 @@
   (global-set-key (kbd "C-x M-b") 'bibslurp-query-ads)
   #+END_SRC
 
+* License
+ Copyright (C) 2013-2015 authors
+ 
+ written by Mike McCourt and Mosè Giordano
+ 
+ license: [[https://gnu.org/licenses/gpl-3.0.txt][GPLv3]]
+
+
+
 * TODO:
-  1. clean up code
-  2. check regexp robustness
+  1. Look into using an xml parser instead of regular expressions
 
