@@ -122,3 +122,7 @@
 * TODO:
   1. Look into using an xml parser instead of regular expressions
 
+
+# Local Variables:
+# coding: utf-8-unix
+# End:
