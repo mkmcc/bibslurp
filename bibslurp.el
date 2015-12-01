@@ -41,13 +41,51 @@
 ;;; Example usage:
 
 ;; add an entry to a bibtex buffer:
-;;   M-x bibslurp-query-ads RET ^Quataert 2008
-;;   1 RET
+;;   M-x bibslurp-query-ads RET ^Quataert 2008 RET
+;; Move to the abstract you want to cite with n and p keys, or search
+;; in the buffer with s or r, and then press
+;;   RET
+;;   q
+;;   C-y
+
+;; If you want to select a different abstract, just type the
+;; corresponding number before pressing RET:
+;;   15 RET
 ;;   q
 ;;   C-y
 
 ;; For more examples and information see the project page at
 ;; http://astro.berkeley.edu/~mkmcc/software/bibslurp.html
+
+;;; Advanced search
+;; You can turn to the ADS advanced search interface, akin to
+;; http://adsabs.harvard.edu/abstract_service.html, either by pressing
+;; C-c C-c after having issued `bibslurp-query-ads', or directly with
+;;   M-x `bibslurp-query-ads-advanced-search' RET
+;; Here you can fill the wanted search fields (authors, publication
+;; date, objects, title, abstract) and specify combination logics, and
+;; then send the query either with C-c C-c or by pressing the button
+;; "Send Query".  Use TAB to move through fields, and q outside an
+;; input field to quit the search interface.
+
+;;; Other features
+;; In the ADS search result buffer you can also visit some useful
+;; pages related to each entry:
+;;  - on-line data at other data centers, with d
+;;  - on-line version of the selected article, with e
+;;  - on-line articles in PDF or Postscript, with f
+;;  - lists of objects for the selected abstract in the NED database,
+;;    with N
+;;  - lists of objects for the selected abstract in the SIMBAD
+;;    database, with S
+;;  - on-line pre-print version of the article in the arXiv database,
+;;    with x
+;; For each of these commands, BibSlurp will use by default the
+;; abstract point is currenly on, but you can specify a different
+;; abstract by prefixing the command with a number.  For example,
+;;   7 x
+;; will fire up your browser to the arXiv version of the seventh
+;; abstract in the list.
 
 ;;; Notes about the implementation:
 
@@ -87,6 +125,9 @@
 ;;; Code:
 (require 's)
 (require 'dash)
+(require 'widget)
+(eval-when-compile
+  (require 'wid-edit))
 
 (defgroup bibslurp nil
   "retrieve BibTeX entries from NASA ADS."
@@ -176,10 +217,9 @@ once the search results are returned."
   "Close the bibslurp buffer and restore the previous window
 configuration."
   (interactive)
-  (when (eq major-mode 'bibslurp-mode)
-    (kill-buffer)
-    (when (get-register :bibslurp-window)
-      (jump-to-register :bibslurp-window))))
+  (kill-buffer)
+  (when (get-register :bibslurp-window)
+    (jump-to-register :bibslurp-window)))
 
 (defun bibslurp/build-ads-url (search-string)
   "Helper function which turns a search string (e.g. \"^Quataert
@@ -210,17 +250,15 @@ For each entry, the elements are:
  * 6: URL of the abstract
 All elements are string.")
 
-;;;###autoload
-(defun bibslurp-query-ads (search-string)
-  "Interactive function which asks for a search string and sends
-the query to NASA ADS.  Displays results in a new buffer called
-\"ADS Search Results\" and enters `bibslurp-mode'.  You can
-retrieve a bibtex entry by typing the number in front of the
-abstract link and hitting enter.  Hit 'a' instead to pull up the
-abstract.  You can exit the mode at any time by hitting 'q'."
-  (interactive (list (read-string "Search string: " nil 'bibslurp-query-history)))
-  (let ((search-url (bibslurp/build-ads-url search-string))
-        (buf (get-buffer-create "ADS Search Results"))
+(defun bibslurp/search-results (search-url &optional search-string)
+  "Create the buffer for the results of a search.
+
+Displays results in a new buffer called \"ADS Search Results\"
+and enters `bibslurp-mode'.  You can retrieve a bibtex entry by
+typing the number in front of the abstract link and hitting
+enter.  Hit 'a' instead to pull up the abstract.  You can exit
+the mode at any time by hitting 'q'."
+  (let ((buf (get-buffer-create "ADS Search Results"))
         (inhibit-read-only t))
     (with-temp-buffer
       (url-insert-file-contents search-url)
@@ -228,9 +266,13 @@ abstract.  You can exit the mode at any time by hitting 'q'."
 	    (-map 'bibslurp/clean-entry (bibslurp/read-table))))
     (with-current-buffer buf
       (erase-buffer)
-      (insert "ADS Search Results for \""
-              (propertize search-string 'face 'font-lock-string-face)
-              "\"\n\n")
+      (insert "ADS Search Results for "
+	      ;; `search-string' is nil when we use advanced search.
+              (if search-string
+		  (concat "\"" (propertize search-string
+					   'face 'font-lock-string-face) "\"")
+		"advanced search")
+              "\n\n")
       (insert
        (propertize
         (concat
@@ -250,11 +292,46 @@ abstract.  You can exit the mode at any time by hitting 'q'."
 	;; Shave off the last newlines
 	(delete-char -4))
       (bibslurp-mode))
-    (window-configuration-to-register :bibslurp-window)
     (switch-to-buffer buf)
     (setq buffer-read-only t)
     (set-buffer-modified-p nil)
     (delete-other-windows)))
+
+;;;###autoload
+(defun bibslurp-query-ads (&optional search-string)
+  "Ask for a search string and sends the query to NASA ADS.
+
+Press \"C-c C-c\" to turn to the advanced search interface."
+  (interactive)
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map minibuffer-local-map)
+    ;; Bind C-c C-c to abort reading from minibuffer.  This throws a `quit'
+    ;; signal that we can catch later.
+    (define-key map "\C-c\C-c"
+      (lambda ()
+	(interactive)
+	(abort-recursive-edit)))
+    (condition-case nil
+	(progn
+	  ;; Read the search string from minibuffer, if not provided as
+	  ;; argument.
+	  (unless search-string
+	    (setq search-string
+		  (read-from-minibuffer "Search string: " nil map nil
+					'bibslurp-query-history)))
+	  ;; Show search results for the given search string.
+	  (window-configuration-to-register :bibslurp-window)
+	  (bibslurp/search-results (bibslurp/build-ads-url search-string)
+				   search-string))
+      ;; We've received a `quit' signal.  If it has been thrown by C-c C-c,
+      ;; start the ADS advanced search, otherwise emit the standard error.
+      ;; XXX: actually `last-input-event' holds only the very last event (C-c,
+      ;; in this case), we must hope the user didn't bind other keys ending in
+      ;; C-c to a `quit' signal, but this isn't the case in the standard
+      ;; configuration.
+      (quit (if (equal last-input-event ?\C-c)
+		(bibslurp-query-ads-advanced-search)
+	      (error "Quit"))))))
 
 (defun bibslurp/read-table ()
   "Parse the HTML from a search results page.
@@ -586,6 +663,260 @@ user for inserting it. "
   "Visit NED for entry NUMBER in `bibslurp-entry-list'."
   (interactive)
   (bibslurp/visit-something 'ned number))
+
+;;; Advanced search
+
+(defvar-local bibslurp/advanced-search-ast nil)
+(defvar-local bibslurp/advanced-search-phy nil)
+(defvar-local bibslurp/advanced-search-pre nil)
+(defvar-local bibslurp/advanced-search-authors nil)
+(defvar-local bibslurp/advanced-search-author-logic nil)
+(defvar-local bibslurp/advanced-search-start-mon nil)
+(defvar-local bibslurp/advanced-search-start-year nil)
+(defvar-local bibslurp/advanced-search-end-mon nil)
+(defvar-local bibslurp/advanced-search-end-year nil)
+(defvar-local bibslurp/advanced-search-object-logic nil)
+(defvar-local bibslurp/advanced-search-object nil)
+(defvar-local bibslurp/advanced-search-sim nil)
+(defvar-local bibslurp/advanced-search-ned nil)
+(defvar-local bibslurp/advanced-search-adsobj nil)
+(defvar-local bibslurp/advanced-search-title nil)
+(defvar-local bibslurp/advanced-search-title-logic nil)
+(defvar-local bibslurp/advanced-search-abstract nil)
+(defvar-local bibslurp/advanced-search-abstract-logic nil)
+
+(defun bibslurp/advanced-search-build-url
+    (ast phy pre authors author-logic start-mon start-year end-mon end-year
+	 object object-logic sim ned adsobj title title-logic abstract
+	 abstract-logic &rest _ignore)
+  "Return the ADS search url for the advanced search."
+  (let ((base-url "http://adsabs.harvard.edu/cgi-bin/nph-abs_connect?&qform=AST&arxiv_sel=astro-ph&arxiv_sel=cond-mat&arxiv_sel=cs&arxiv_sel=gr-qc&arxiv_sel=hep-ex&arxiv_sel=hep-lat&arxiv_sel=hep-ph&arxiv_sel=hep-th&arxiv_sel=math&arxiv_sel=math-ph&arxiv_sel=nlin&arxiv_sel=nucl-ex&arxiv_sel=nucl-th&arxiv_sel=physics&arxiv_sel=quant-ph&arxiv_sel=q-bio")
+	(ast-url (if ast "&db_key=AST"))
+	(phy-url (if phy "&db_key=PHY"))
+	(pre-url (if pre "&db_key=PRE"))
+	(sim-url    (if sim    "&sim_query=YES"    "&sim_query=NO"))
+	(ned-url    (if ned    "&ned_query=YES"    "&ned_query=NO"))
+	(adsobj-url (if adsobj "&adsobj_query=YES" "&adsobj_query=NO"))
+	(aut-logic-url (concat "&aut_logic=" author-logic))
+	(obj-logic-url (concat "&obj_logic=" object-logic))
+	(authors-url
+	 (concat "&author=" (replace-regexp-in-string " " "+" authors)))
+	(object-url
+	 (concat "&object=" (replace-regexp-in-string " " "+" object)))
+	(start-mon-url  (concat "&start_mon=" start-mon))
+	(start-year-url (concat "&start_year=" start-year))
+	(end-mon-url  (concat "&end_mon=" end-mon))
+	(end-year-url (concat "&end_year=" end-year))
+	(ttl-logic-url (concat "&ttl_logic=" title-logic))
+	(title-url
+	 (concat "&title=" (replace-regexp-in-string " " "+" title)))
+	(txt-logic-url (concat "&txt_logic=" abstract-logic))
+	(text-url
+	 (concat "&text=" (replace-regexp-in-string " " "+" abstract)))
+	(end-url "&nr_to_return=200&start_nr=1&jou_pick=ALL&ref_stems=&data_and=ALL&group_and=ALL&start_entry_day=&start_entry_mon=&start_entry_year=&end_entry_day=&end_entry_mon=&end_entry_year=&min_score=&sort=SCORE&data_type=SHORT&aut_syn=YES&ttl_syn=YES&txt_syn=YES&aut_wt=1.0&obj_wt=1.0&ttl_wt=0.3&txt_wt=3.0&aut_wgt=YES&obj_wgt=YES&ttl_wgt=YES&txt_wgt=YES&ttl_sco=YES&txt_sco=YES&version=1"))
+    (concat base-url ast-url phy-url pre-url sim-url ned-url adsobj-url
+	    aut-logic-url obj-logic-url authors-url object-url start-mon-url
+	    start-year-url end-mon-url end-year-url ttl-logic-url title-url
+	    txt-logic-url text-url end-url)))
+
+(defun bibslurp/advanced-search-send-query (&rest _ignore)
+  "Send the query for the advanced search."
+  (interactive)
+  (bibslurp/search-results
+   (bibslurp/advanced-search-build-url
+    (widget-value bibslurp/advanced-search-ast)
+    (widget-value bibslurp/advanced-search-phy)
+    (widget-value bibslurp/advanced-search-pre)
+    (widget-value bibslurp/advanced-search-authors)
+    (widget-value bibslurp/advanced-search-author-logic)
+    (widget-value bibslurp/advanced-search-start-mon)
+    (widget-value bibslurp/advanced-search-start-year)
+    (widget-value bibslurp/advanced-search-end-mon)
+    (widget-value bibslurp/advanced-search-end-year)
+    (widget-value bibslurp/advanced-search-object)
+    (widget-value bibslurp/advanced-search-object-logic)
+    (widget-value bibslurp/advanced-search-sim)
+    (widget-value bibslurp/advanced-search-ned)
+    (widget-value bibslurp/advanced-search-adsobj)
+    (widget-value bibslurp/advanced-search-title)
+    (widget-value bibslurp/advanced-search-title-logic)
+    (widget-value bibslurp/advanced-search-abstract)
+    (widget-value bibslurp/advanced-search-abstract-logic)))
+  (kill-buffer "*ADS advanced search*"))
+
+
+;;;###autoload
+(defun bibslurp-query-ads-advanced-search ()
+  "Query ADS using advanced search."
+  (interactive)
+  (window-configuration-to-register :bibslurp-window)
+  (switch-to-buffer "*ADS advanced search*")
+  (kill-all-local-variables)
+  (let ((inhibit-read-only t))
+    (erase-buffer))
+  (remove-overlays)
+
+  ;; Welcome!
+  (widget-insert
+   (propertize "SAO/NASA ADS Custom query\n\n" 'font-lock-face '(:weight bold)))
+  (widget-insert
+   "Press C-c C-c to send the query, TAB to move to another field,\
+ q to exit.\n\n\n")
+
+  ;; Prepare keymaps
+  (let ((field-keymap (make-sparse-keymap))
+	(keymap (make-sparse-keymap)))
+    (set-keymap-parent field-keymap widget-field-keymap)
+    (define-key field-keymap "\C-c\C-c"
+      'bibslurp/advanced-search-send-query)
+
+    (set-keymap-parent keymap widget-keymap)
+    (define-key keymap "\C-c\C-c" 'bibslurp/advanced-search-send-query)
+    (define-key keymap "q"        'bibslurp-quit)
+
+    ;; Databases
+    (widget-insert "Databases to query: ")
+    (setq bibslurp/advanced-search-ast (widget-create 'checkbox t))
+    (widget-insert " Astronomy ")
+    (setq bibslurp/advanced-search-phy (widget-create 'checkbox nil))
+    (widget-insert " Physics ")
+    (setq bibslurp/advanced-search-pre (widget-create 'checkbox t))
+    (widget-insert " arXiv e-prints\n\n")
+
+    ;; Authors
+    (setq bibslurp/advanced-search-authors
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'newline
+			 :format
+			 (concat (propertize "Authors"
+					     'font-lock-face '(:weight bold))
+				 ": (Last, First M, one per line) %v")))
+
+    ;; Authors logic
+    (widget-insert "\nCombine authors with logic\n")
+    (setq bibslurp/advanced-search-author-logic
+	  (widget-create 'radio-button-choice
+			 :value "OR"
+			 '(item "OR") '(item "AND")
+			 '(item :tag "simple logic" "SIMPLE")))
+
+    ;; Publication date
+    (widget-insert "\n\n")
+    (widget-insert (propertize "Publication date"
+			       'font-lock-face '(:weight bold)))
+    (widget-insert ":\nbetween ")
+    (setq bibslurp/advanced-search-start-mon
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'bibslurp/advanced-search-send-query
+			 :format "(MM) %v"))
+    (setq bibslurp/advanced-search-start-year
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'bibslurp/advanced-search-send-query
+			 :format " (YYYY) %v"))
+    (widget-insert "\n    and ")
+    (setq bibslurp/advanced-search-end-mon
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'bibslurp/advanced-search-send-query
+			 :format "(MM) %v"))
+    (setq bibslurp/advanced-search-end-year
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'bibslurp/advanced-search-send-query
+			 :format " (YYYY) %v"))
+
+    ;; Objects
+    (setq bibslurp/advanced-search-object
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'newline
+			 :format
+			 (concat "\n\n\n"
+				 (propertize "Object name/position search"
+					     'font-lock-face '(:weight bold))
+				 ": %v")))
+    ;; Objects catalogs
+    (widget-insert "\nSelect data catalogs:\n")
+    (setq bibslurp/advanced-search-sim (widget-create 'checkbox t))
+    (widget-insert " SIMBAD ")
+    (setq bibslurp/advanced-search-ned (widget-create 'checkbox t))
+    (widget-insert " NED ")
+    (setq bibslurp/advanced-search-adsobj (widget-create 'checkbox t))
+    (widget-insert " ADS objects\n")
+    ;; Objects logic
+    (widget-insert "Combine objects with logic\n")
+    (setq bibslurp/advanced-search-object-logic
+	  (widget-create 'radio-button-choice
+			 :value "OR"
+			 '(item "OR") '(item "AND")))
+
+    ;; Title
+    (setq bibslurp/advanced-search-title
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'newline
+			 :format
+			 (concat "\n\n"
+				 (propertize "Enter Title Words"
+					     'font-lock-face '(:weight bold))
+				 ": %v")))
+    ;; Title logic
+    (widget-insert "\nCombine with logic\n")
+    (setq bibslurp/advanced-search-title-logic
+	  (widget-create 'radio-button-choice
+			 :value "OR"
+			 '(item "OR") '(item "AND")
+			 '(item :tag "simple logic" "SIMPLE")
+			 '(item :tag "boolean logic" "BOOL")))
+
+    ;; Abstract
+    (setq bibslurp/advanced-search-abstract
+	  (widget-create 'editable-field
+			 :size 13
+			 :keymap field-keymap
+			 :action 'newline
+			 :format
+			 (concat "\n\n"
+				 (propertize "Enter Abstract Words/Keywords"
+					     'font-lock-face '(:weight bold))
+				 ": %v")))
+    ;; Abstract logic
+    (widget-insert "\nCombine with logic\n")
+    (setq bibslurp/advanced-search-abstract-logic
+	  (widget-create 'radio-button-choice
+			 :value "OR"
+			 '(item "OR") '(item "AND")
+			 '(item :tag "simple logic" "SIMPLE")
+			 '(item :tag "boolean logic" "BOOL")))
+
+    ;; Buttons
+    (widget-insert "\n\n")
+    (widget-create 'push-button
+		   :notify (lambda (&rest _ignore)
+			     (bibslurp/advanced-search-send-query))
+		   "Send Query")
+    (widget-insert " ")
+    (widget-create 'push-button
+		   :notify (lambda (&rest _ignore)
+			     (bibslurp-query-ads-advanced-search))
+		   "Clear")
+
+    ;; Setup the widgets
+    (use-local-map keymap)
+    (widget-setup)
+
+    ;; Move to the author widget
+    (widget-forward 4)))
 
 (provide 'bibslurp)
 

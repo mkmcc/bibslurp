@@ -62,8 +62,19 @@
   #+ATTR_HTML: alt="abstract-view" title="abstract-view" width="602" height="466"
   [[file:images/abstract-view.png]]
 
+** Advanced search
+   You can turn to the ADS advanced search interface, akin to
+   http://adsabs.harvard.edu/abstract_service.html, either by pressing =C-c C-c=
+   after having issued =bibslurp-query-ads=, or directly with =M-x
+   bibslurp-query-ads-advanced-search RET=.  Here you can fill the wanted search
+   fields (authors, publication date, objects, title, abstract) and specify
+   combination logics, and then send the query either with =C-c C-c= or by
+   pressing the button =Send Query=.  Use =TAB= to move through fields, and =q=
+   outside an input field to quit the search interface.
+
 ** Other features
-   You can also visit some useful pages related to each entry:
+   In the ADS search result buffer you can also visit some useful pages related
+   to each entry:
    - on-line data at other data centers, with =d=
    - on-line version of the selected article, with =e=
    - on-line articles in PDF or Postscript, with =f=
