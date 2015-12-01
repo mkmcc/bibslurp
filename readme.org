@@ -1,27 +1,35 @@
 #+TITLE: bibslurp.el --- retrieve BibTeX entries from NASA ADS
 
-=bibslurp= provides an easy way to find BibTeX entries from the NASA ADS server and put them into your local database.
+=bibslurp= provides an easy way to find BibTeX entries from the [[http://adswww.harvard.edu/][NASA
+ADS]] server and to copy them into your local database.  All from within
+emacs!
+
+We have tried to make bibslurp as simple and as unobtrusive as
+possible, with advanced features available when you need them.  We
+hope you like the interface!
 
 * Example usage:
   1. add an entry to a bibtex buffer:
      #+BEGIN_EXAMPLE
      M-x bibslurp-query-ads RET ^Quataert 2008 RET
      #+END_EXAMPLE
-     Move to the abstract you want to cite with =n= and =p= keys, or search in
-     the buffer with =s= or =r=, and then press
+
+     Type the corresponding number and hit =RET=:
+     #+BEGIN_EXAMPLE
+     1 RET
+     q
+     C-y
+     #+END_EXAMPLE
+
+     Alternatively, you can navigate to the abstract you want with the
+     =n= and =p= keys, or search in the buffer with =s= or =r=, and
+     then press
      #+BEGIN_EXAMPLE
      RET
      q
      C-y
      #+END_EXAMPLE
 
-     If you want to select a different abstract, just type the corresponding
-     number before pressing =RET=:
-     #+BEGIN_EXAMPLE
-     15 RET
-     q  
-     C-y
-     #+END_EXAMPLE
 
 * Description:
   Creating a BibTeX file is one of the more tedious aspects of writing
@@ -51,7 +59,7 @@
   From here, hitting =q= takes me back to my =.bib= file, where I can
   yank the entry with =C-y=: (note that bibslurp automatically
   generates a label for the entry)
-  
+
   #+ATTR_HTML: alt="yanked-entry" title="yanked-entry" width="602" height="466"
   [[file:images/yanked-entry.png]]
 
@@ -66,11 +74,16 @@
    You can turn to the ADS advanced search interface, akin to
    http://adsabs.harvard.edu/abstract_service.html, either by pressing =C-c C-c=
    after having issued =bibslurp-query-ads=, or directly with =M-x
-   bibslurp-query-ads-advanced-search RET=.  Here you can fill the wanted search
-   fields (authors, publication date, objects, title, abstract) and specify
-   combination logics, and then send the query either with =C-c C-c= or by
-   pressing the button =Send Query=.  Use =TAB= to move through fields, and =q=
-   outside an input field to quit the search interface.
+   bibslurp-query-ads-advanced-search RET=.  This pulls up a buffer
+   like this:
+   #+ATTR_HTML: alt="advanced-search" title="advanced-search" width="629" height="686"
+   [[file:images/advanced-search.png]]
+
+   Here you can fill the wanted search fields (authors, publication
+   date, objects, title, abstract) and specify combination logics, and
+   then send the query either with =C-c C-c= or by pressing the button
+   =Send Query=.  Use =TAB= to move through fields, and =q= outside an
+   input field to quit the search interface.
 
 ** Other features
    In the ADS search result buffer you can also visit some useful pages related
@@ -112,9 +125,9 @@
 
 * License
  Copyright (C) 2013-2015 authors
- 
+
  written by Mike McCourt and Mosè Giordano
- 
+
  license: [[https://gnu.org/licenses/gpl-3.0.txt][GPLv3]]
 
 
