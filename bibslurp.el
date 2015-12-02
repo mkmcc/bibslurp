@@ -760,8 +760,8 @@ user for inserting it. "
   (widget-insert
    (propertize "SAO/NASA ADS Custom query\n\n" 'font-lock-face '(:weight bold)))
   (widget-insert
-   "Press C-c C-c to send the query, TAB to move to another field,\
- q to exit.\n\n\n")
+   "Press C-c C-c to send the query, TAB to move to another field,
+q (outside input fields) to exit.\n\n\n")
 
   ;; Prepare keymaps
   (let ((field-keymap (make-sparse-keymap))
@@ -789,11 +789,12 @@ user for inserting it. "
 			 :size 13
 			 :keymap field-keymap
 			 :action 'newline
+			 :help-echo "C-c C-c: send the query; \
+RET: insert a newline"
 			 :format
 			 (concat (propertize "Authors"
 					     'font-lock-face '(:weight bold))
 				 ": (Last, First M, one per line) %v")))
-
     ;; Authors logic
     (widget-insert "\nCombine authors with logic\n")
     (setq bibslurp/advanced-search-author-logic
@@ -812,12 +813,14 @@ user for inserting it. "
 			 :size 13
 			 :keymap field-keymap
 			 :action 'bibslurp/advanced-search-send-query
+			 :help-echo "C-c C-c, RET: send the query"
 			 :format "(MM) %v"))
     (setq bibslurp/advanced-search-start-year
 	  (widget-create 'editable-field
 			 :size 13
 			 :keymap field-keymap
 			 :action 'bibslurp/advanced-search-send-query
+			 :help-echo "C-c C-c, RET: send the query"
 			 :format " (YYYY) %v"))
     (widget-insert "\n    and ")
     (setq bibslurp/advanced-search-end-mon
@@ -825,12 +828,14 @@ user for inserting it. "
 			 :size 13
 			 :keymap field-keymap
 			 :action 'bibslurp/advanced-search-send-query
+			 :help-echo "C-c C-c, RET: send the query"
 			 :format "(MM) %v"))
     (setq bibslurp/advanced-search-end-year
 	  (widget-create 'editable-field
 			 :size 13
 			 :keymap field-keymap
 			 :action 'bibslurp/advanced-search-send-query
+			 :help-echo "C-c C-c, RET: send the query"
 			 :format " (YYYY) %v"))
 
     ;; Objects
@@ -839,6 +844,8 @@ user for inserting it. "
 			 :size 13
 			 :keymap field-keymap
 			 :action 'newline
+			 :help-echo "C-c C-c: send the query; \
+RET: insert a newline"
 			 :format
 			 (concat "\n\n\n"
 				 (propertize "Object name/position search"
@@ -865,6 +872,8 @@ user for inserting it. "
 			 :size 13
 			 :keymap field-keymap
 			 :action 'newline
+			 :help-echo "C-c C-c: send the query; \
+RET: insert a newline"
 			 :format
 			 (concat "\n\n"
 				 (propertize "Enter Title Words"
@@ -885,6 +894,8 @@ user for inserting it. "
 			 :size 13
 			 :keymap field-keymap
 			 :action 'newline
+			 :help-echo "C-c C-c: send the query; \
+RET: insert a newline"
 			 :format
 			 (concat "\n\n"
 				 (propertize "Enter Abstract Words/Keywords"
