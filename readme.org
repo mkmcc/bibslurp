@@ -1,5 +1,11 @@
 #+TITLE: bibslurp.el --- retrieve BibTeX entries from NASA ADS
 
+/As of November 2019, this package does not work any more because of changes in
+the ADS API.  If you want to help porting the package to the new API, please see
+the issue [[https://github.com/mkmcc/bibslurp/issues/12][#12]]/
+
+---
+
 =bibslurp= provides an easy way to find BibTeX entries from the [[http://adswww.harvard.edu/][NASA
 ADS]] server and to copy them into your local database.  All from within
 emacs!
